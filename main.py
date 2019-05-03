@@ -74,9 +74,9 @@ def main():
     args = set_scripts_parameters()
 
     server = jenkins.Jenkins(
-        args.jenkins_url, 
-        args.jenkins_user, 
-        args.jenkins_password
+        url=args.jenkins_url,
+        username=args.jenkins_user,
+        password=args.jenkins_password
     )
 
     print("Hello %s " % server.get_whoami()['fullName'])
