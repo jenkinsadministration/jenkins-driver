@@ -1,0 +1,5 @@
+six
+requests
+pytz
+python-jenkins
+jinja2

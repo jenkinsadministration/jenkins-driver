@@ -1,0 +1,133 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.32">
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        {% if log_rotate > 0 %}
+            <jenkins.model.BuildDiscarderProperty>
+                <strategy class="hudson.tasks.LogRotator">
+                    <daysToKeep>-1</daysToKeep>
+                    <numToKeep>{{log_rotate}}</numToKeep>
+                    <artifactDaysToKeep>-1</artifactDaysToKeep>
+                    <artifactNumToKeep>-1</artifactNumToKeep>
+                </strategy>
+            </jenkins.model.BuildDiscarderProperty>
+        {% endif %}
+        <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+        <hudson.model.ParametersDefinitionProperty>
+             <parameterDefinitions>
+                {% for p in parameters %}
+                    {% if p['is_parameterizable'] %}
+                        {% if p['type'] == 'string' %}
+                            <hudson.model.StringParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                                <trim>false</trim>
+                            </hudson.model.StringParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'boolean' %}
+                            <hudson.model.BooleanParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                            </hudson.model.BooleanParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'choice' %}
+                            <hudson.model.ChoiceParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <choices class="java.util.Arrays$ArrayList">
+                                    <a class="string-array">
+                                        {% for value in p['values'] %}
+                                            <string>{{value}}</string>
+                                        {% endfor %}
+                                    </a>
+                                </choices>
+                            </hudson.model.ChoiceParameterDefinition>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+        {% if cron['poll_scm'] != '' %}
+            <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+              <triggers>
+                    <hudson.triggers.SCMTrigger>
+                        <spec>{{cron['poll_scm']}}</spec>
+                    </hudson.triggers.SCMTrigger>
+              </triggers>
+            </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+        {% endif %}
+    </properties>
+    {% if cron['build'] != '' %}
+        <triggers>
+            <hudson.triggers.TimerTrigger>
+                <spec>{{cron['build']}}</spec>
+            </hudson.triggers.TimerTrigger>
+        </triggers>
+    {% endif %}
+    <concurrentBuild>false</concurrentBuild>
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
+        <script>
+import hudson.model.*
+import hudson.model.AbstractProject
+import hudson.tasks.Mailer
+
+
+BUILD_JOB_NAME = "${JOB_NAME}"
+
+ node {
+    stage('Preparation') {
+        currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+        checkout([$class: 'GitSCM',
+  	        branches: [[name: "${params.Branch}"]],
+  	        extensions: [[$class: 'CloneOption', timeout: 120]],
+  	        gitTool: 'Default',
+            userRemoteConfigs: [[url: '{{repository}}']]
+  	    ])
+    }
+    stage('Build') {
+        sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id=1C1DCEA6-1E88-4CB0-B0BA-100E6494922E'"
+    }
+    stage('Publish') {
+        sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
+        sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
+        archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
+    }
+    stage('Fire Tests') {
+
+        Jenkins.instance.getAllItems(AbstractItem.class).each {
+          	if (BUILD_JOB_NAME == it.fullName) {
+          	    def user_id = it.getLastBuild().getCauses()[0].getUserId()
+
+          	    def u = User.get(user_id)
+          	    def user_name = it.getLastBuild().getCauses()[0].getUserName()
+                def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
+                def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
+                def jenkins_url = "http://localhost:8080"
+                build job:
+                    '../Test/Test_iPhone_Custom_Branch',
+                    parameters: [
+                        string(name: 'Suite', value: "${params.Test_To_Execute}"),
+                        string(name: 'App_Path', value: "${jenkins_url}/job/Mobile/job/PedidosYa_iOS_Custom_Branch/${BUILD_NUMBER}/artifact"),
+                        booleanParam(name: 'Testrail_Flag', value: false),
+                        string(name: 'Emails_To_Notify', value: emails_to_notify),
+                        string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
+                        string(name: 'Started_By', value: user_name)
+                    ],
+                    propagate: false,
+                    wait: false
+
+          	}
+        };
+
+    }
+}
+        </script>
+        <sandbox>true</sandbox>
+    </definition>
+    <triggers/>
+    <disabled>false</disabled>
+</flow-definition>

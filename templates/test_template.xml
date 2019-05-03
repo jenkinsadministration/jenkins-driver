@@ -1,0 +1,133 @@
+<flow-definition plugin="workflow-job@2.32">
+    <actions/>
+    <description/>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        {% if log_rotate > 0 %}
+            <jenkins.model.BuildDiscarderProperty>
+                <strategy class="hudson.tasks.LogRotator">
+                    <daysToKeep>-1</daysToKeep>
+                    <numToKeep>{{log_rotate}}</numToKeep>
+                    <artifactDaysToKeep>-1</artifactDaysToKeep>
+                    <artifactNumToKeep>-1</artifactNumToKeep>
+                </strategy>
+            </jenkins.model.BuildDiscarderProperty>
+        {% endif %}
+        {% if parameters|length > 0 %}
+        <hudson.model.ParametersDefinitionProperty>
+            <parameterDefinitions>
+                {% for p in parameters %}
+                    {% if p['is_parameterizable'] %}
+                        {% if p['type'] == 'string' %}
+                            <hudson.model.StringParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                                <trim>false</trim>
+                            </hudson.model.StringParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'boolean' %}
+                            <hudson.model.BooleanParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                            </hudson.model.BooleanParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'choice' %}
+                            <hudson.model.ChoiceParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <choices class="java.util.Arrays$ArrayList">
+                                    <a class="string-array">
+                                        {% for value in p['values'] %}
+                                            <string>{{value}}</string>
+                                        {% endfor %}
+                                    </a>
+                                </choices>
+                            </hudson.model.ChoiceParameterDefinition>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+        {% endif %}
+        {% if cron['poll_scm'] != '' %}
+            <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+              <triggers>
+                    <hudson.triggers.SCMTrigger>
+                        <spec>{{cron['poll_scm']}}</spec>
+                    </hudson.triggers.SCMTrigger>
+              </triggers>
+            </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+        {% endif %}
+    </properties>
+    {% if cron['build'] != '' %}
+        <triggers>
+            <hudson.triggers.TimerTrigger>
+                <spec>{{cron['build']}}</spec>
+            </hudson.triggers.TimerTrigger>
+        </triggers>
+    {% endif %}
+    <concurrentBuild>false</concurrentBuild>
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
+        <script>
+import groovy.json.*
+pipeline {
+    agent any
+    stages {
+        stage('Preparation') {
+            steps {
+                script {
+                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+                }
+                checkout([$class: 'GitSCM',
+                    branches: [[name: "{{branch}}"]],
+                    extensions: [[$class: 'CloneOption', timeout: 120]],
+                    gitTool: 'Default',
+                    userRemoteConfigs: [[url: '{{repository}}']]
+                ])
+            }
+        }
+        stage('Tests') {
+            steps {
+                script {
+                    withEnv([
+                                "JAVA_HOME=${tool 'Java8' }",
+                                "PATH+MAVEN=${tool 'Maven3'}/bin:${env.JAVA_HOME}/bin"
+                            ])
+                    {
+                        try {
+                            sh "export PATH=$PATH:/usr/local/bin/adb"
+                            sh "mvn clean test{{maven_params}}"
+                        } catch (exc) {
+                            currentBuild.result = 'FAILED'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Results') {
+            steps {
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'target/surefire-reports/testng-results.xml'
+            }
+        }
+        {% if athenea.project_id != '' and athenea.environment_id != '' %}
+        stage('Upload Report') {
+            steps {
+                sh 'cp target/surefire-reports/testng-results.xml ./report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml'
+                // Upload notify by email aditionals subscriptors
+                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"emails": ' + "${JsonOutput.toJson(params.Emails_To_Notify.split(','))}" +'}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/notifications', validResponseCodes: '100:599'
+                // Set execution details
+                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": "' + "${params.Started_By}" +'"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
+                googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
+            }
+        }
+        {% endif %}
+    }
+}
+        </script>
+        <sandbox>false</sandbox>
+    </definition>
+    <triggers/>
+    <disabled>false</disabled>
+</flow-definition>

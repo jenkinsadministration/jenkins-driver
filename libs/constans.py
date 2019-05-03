@@ -1,0 +1,5 @@
+OS_iOS = 'IPHONE'
+OS_Android = 'ANDROID'
+
+BUILD_JOB = 'BUILD'
+TEST_JOB = 'TEST'
