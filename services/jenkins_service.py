@@ -14,9 +14,7 @@ def get_job_label(job_configuration):
 
 
 def get_global_environment_vars(environment_var):
-    with open('projects.json', 'r+') as f:
-        data = json.load(f)
-        return data['environment_vars'][environment_var]
+    return ''
 
 
 class JenkinsService:
