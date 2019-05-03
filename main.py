@@ -27,6 +27,7 @@ def set_scripts_parameters():
 
 
 def restart_server():
+    args = set_scripts_parameters()
     url = args.jenkins_url + "/restart"
 
     auth_token = base64.b64encode(
