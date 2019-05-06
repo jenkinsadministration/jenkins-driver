@@ -1,27 +1,36 @@
 # -*- coding: utf-8 -*-
-from libs.constans import BUILD_JOB
+from libs.constans import BUILD_JOB, TEST_JOB, OS_Android, OS_iOS, OS_Web
 from services.jenkins_service import JenkinsService
 from services.jenkins_service import get_job_label
 
 import argparse
 import base64
 import jenkins
-import json
 import requests
 import time
+
+args = None
 
 
 def set_scripts_parameters():
     parser = argparse.ArgumentParser(description='Process Jenkins parameters')
 
-    parser.add_argument('--jenkins_url', metavar='jenkins_url', type=str,
+    parser.add_argument('--jenkins_url', metavar='jenkins_url', type=str, required=True,
                         help='Jenkins server url')
 
-    parser.add_argument('--jenkins_user', metavar='jenkins_user', type=str,
+    parser.add_argument('--jenkins_user', metavar='jenkins_user', type=str, required=True,
                         help='Jenkins admin user')
 
-    parser.add_argument('--jenkins_password', metavar='jenkins_password', type=str,
+    parser.add_argument('--jenkins_password', metavar='jenkins_password', type=str, required=True,
                         help='Jenkins admin password')
+
+    parser.add_argument('--allowed_type', metavar='allowed_type', type=str, required=True,
+                        choices=('ALL', BUILD_JOB, TEST_JOB), default='ALL',
+                        help='Filter by the type of job to be created/updated')
+
+    parser.add_argument('--allowed_platform', metavar='allowed_platform', type=str, required=True,
+                        choices=("ALL", OS_Android, OS_iOS, OS_Web),
+                        help='Filter by the platform')
 
     return parser.parse_args()
 
@@ -39,7 +48,7 @@ def restart_server():
         'Authorization': "Basic %s" % auth_token,
     }
 
-    response = requests.request("POST", url, data='', headers=headers)
+    requests.request("POST", url, data='', headers=headers)
 
 
 def get_jobs():
@@ -55,10 +64,10 @@ def get_jobs():
 
 def get_plugins():
     data = {
-        query: '{ plugins { data { name } } }'
+        'query': '{ plugins { data { name } } }'
     }
 
-    resp = request.post(
+    resp = requests.post(
             url='https://us-central1-jenkinsadmin.cloudfunctions.net/query/graphql',
             json=data
         )
@@ -69,7 +78,18 @@ def get_plugins():
     return resp.json()['data']['plugins']
 
 
+def is_type_allowed(job_type):
+    global args
+    return args.allowed_type == 'ALL' or job_type == args.allowed_type
+
+
+def is_platform_allowed(platform):
+    global args
+    return args.allowed_platform == 'ALL' or platform == args.allowed_platform
+
+
 def main():
+    global args
 
     args = set_scripts_parameters()
 
@@ -113,22 +133,23 @@ def main():
     jobs = get_jobs()
 
     for job in jobs:
-        if job['type'] == 'TEST':
-            jenkins_service.create_test_job(
-                job['full_name'],
-                job['setup'],
-                get_job_label(job),
-                job['platform'],
-                job['browser'],
-                update_if_exists=True
-            )
-        elif job['type'] == 'BUILD':
-            jenkins_service.create_build_job(
-                job['full_name'],
-                job['setup'],
-                get_job_label(job),
-                update_if_exists=True
-            )
+        if is_type_allowed(job['type']) and is_platform_allowed(job['platform']):
+            if job['type'] == 'TEST':
+                jenkins_service.create_test_job(
+                    job['full_name'],
+                    job['setup'],
+                    get_job_label(job),
+                    job['platform'],
+                    job['browser'],
+                    update_if_exists=True
+                )
+            elif job['type'] == 'BUILD':
+                jenkins_service.create_build_job(
+                    job['full_name'],
+                    job['setup'],
+                    get_job_label(job),
+                    update_if_exists=True
+                )
 
     print('\nAll jobs were created')
 
@@ -137,4 +158,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
