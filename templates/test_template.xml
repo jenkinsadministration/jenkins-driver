@@ -13,7 +13,7 @@
                 </strategy>
             </jenkins.model.BuildDiscarderProperty>
         {% endif %}
-        {% if parameters|length > 0 %}
+        {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
             <parameterDefinitions>
                 {% for p in parameters %}
@@ -75,8 +75,6 @@ import groovy.json.*
 
 def build_ok = true
 
-def start = new Date().format('dd/MM/yyyy HH:mm:ss')
-
 pipeline {
     agent any
     stages {
@@ -85,7 +83,7 @@ pipeline {
                 script {
                     currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
                 }
-                slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - ${env.BUILD_DISPLAY_NAME} started at ${start} (<${env.BUILD_URL}|Open>)", color: '#439FE0', teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 checkout([$class: 'GitSCM',
                     branches: [[name: "{{branch}}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
@@ -122,13 +120,18 @@ pipeline {
         stage('Upload Report') {
             steps {
                 sh 'cp target/surefire-reports/testng-results.xml ./report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml'
-                // Upload notify by email aditionals subscriptors
+                {% if has_custom_subscribers %}
+                // Notify by email to additional subscribers
                 httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"emails": ' + "${JsonOutput.toJson(params.Emails_To_Notify.split(','))}" +'}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/notifications', validResponseCodes: '100:599'
+                {% endif %}
+                {% if update_execution_details %}
                 // Set execution details
                 httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": "' + "${params.Started_By}" +'"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
+                {% endif %}
                 googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
             }
         }
+        {% endif %}
         stage('Slack Notification') {
             steps {
                 script {
@@ -141,11 +144,10 @@ pipeline {
                         status = "failed"
                         color = "danger"
                     }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - ${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)", color: "${color}", teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
             }
         }
-        {% endif %}
     }
 }
         </script>

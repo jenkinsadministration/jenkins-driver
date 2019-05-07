@@ -63,12 +63,23 @@ class JenkinsService:
         maven_params += ' -DDRIVER=' + platform.upper()
         maven_params += ' -DBROWSER=' + browser.upper()
 
+        show_parameters = False
+
         for p in parameters:
             if p['is_maven_param']:
                 if p['is_parameterizable']:
                     maven_params += " -D%s=\'${params.%s}\'" % (p['maven_key'], p['name'])
                 else:
                     maven_params += " -D%s=\'%s\'" % (p['maven_key'], p['default_value'])
+
+            if p['is_parameterizable']:
+                show_parameters = True
+
+        has_custom_subscribers = len([d for d in parameters if d['name'] in ['Emails_To_Notify']]) > 0
+
+        update_execution_details = len(
+            [d for d in parameters if d['name'] in ['Reason_Of_Execution', 'Started_By']]
+        ) > 0
 
         template = self.template_env.get_template(template_name)
 
@@ -78,11 +89,14 @@ class JenkinsService:
             cron=cron,
             log_rotate=log_rotate,
             parameters=parameters,
+            show_parameters=show_parameters,
             label=label,
             maven_params=maven_params,
             android_home=android_home,
             athenea=athenea,
-            slack_channel=slack_channel
+            slack_channel=slack_channel,
+            has_custom_subscribers=has_custom_subscribers,
+            update_execution_details=update_execution_details
         )
 
         self.create_folder_path(job_name)
