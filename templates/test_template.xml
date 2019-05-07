@@ -72,6 +72,11 @@
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
         <script>
 import groovy.json.*
+
+def build_ok = true
+
+def start = new Date().format('dd/MM/yyyy HH:mm:ss')
+
 pipeline {
     agent any
     stages {
@@ -80,6 +85,7 @@ pipeline {
                 script {
                     currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
                 }
+                slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - ${env.BUILD_DISPLAY_NAME} started at ${start} (<${env.BUILD_URL}|Open>)", color: '#439FE0', teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 checkout([$class: 'GitSCM',
                     branches: [[name: "{{branch}}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
@@ -101,6 +107,7 @@ pipeline {
                             sh "mvn clean test{{maven_params}}"
                         } catch (exc) {
                             currentBuild.result = 'FAILED'
+                            build_ok = false
                         }
                     }
                 }
@@ -120,6 +127,22 @@ pipeline {
                 // Set execution details
                 httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": "' + "${params.Started_By}" +'"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
                 googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
+            }
+        }
+        stage('Slack Notification') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - ${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (<${env.BUILD_URL}|Open>)", color: "${color}", teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
             }
         }
         {% endif %}

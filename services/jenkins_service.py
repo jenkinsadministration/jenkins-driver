@@ -44,6 +44,7 @@ class JenkinsService:
         branch = setup['branch']
         cron = setup['cron']
         log_rotate = int(setup['log_rotate'])
+        slack_channel = setup['slack_channel']
         template_name = setup['template']
         if 'parameters' in setup:
             parameters = setup['parameters']
@@ -80,7 +81,8 @@ class JenkinsService:
             label=label,
             maven_params=maven_params,
             android_home=android_home,
-            athenea=athenea
+            athenea=athenea,
+            slack_channel=slack_channel
         )
 
         self.create_folder_path(job_name)
