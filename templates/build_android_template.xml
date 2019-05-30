@@ -15,6 +15,7 @@
             </jenkins.model.BuildDiscarderProperty>
         {% endif %}
         <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+        {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
                 {% for p in parameters %}
@@ -51,6 +52,7 @@
                 {% endfor %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
+        {% endif %}
         {% if cron['poll_scm'] != '' %}
             <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
               <triggers>
@@ -89,39 +91,26 @@ BUILD_JOB_NAME = "${JOB_NAME}"
   	    ])
     }
     stage('Build') {
-        sh "cd ./PedidosYaAS &amp;&amp; ./gradlew assemblePeyaStaging"
+        sh "cd ./PedidosYaAS &amp;&amp; ./gradlew assemblePeyaStagingPeyaRelease"
     }
     stage('Publish') {
-        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/debug &amp;&amp; zip -r pedidosYa-peya-staging-debug.apk.zip pedidosYa-peya-staging-debug.apk'
-        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/debug/pedidosYa-peya-staging-debug.apk.zip ./pedidosYa-peya-staging-debug.apk.zip'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'pedidosYa-peya-staging-debug.apk.zip', onlyIfSuccessful: true
+        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/PeyaRelease &amp;&amp; zip -r pedidosYa-peya-staging-PeyaRelease.apk.zip pedidosYa-peya-staging-PeyaRelease.apk'
+        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/PeyaRelease/pedidosYa-peya-staging-PeyaRelease.apk.zip ./pedidosYa-peya-staging-PeyaRelease.apk.zip'
+        archiveArtifacts allowEmptyArchive: true, artifacts: 'pedidosYa-peya-staging-PeyaRelease.apk.zip', onlyIfSuccessful: true
     }
     stage('Fire Tests') {
 
-        Jenkins.instance.getAllItems(AbstractItem.class).each {
-          	if (BUILD_JOB_NAME == it.fullName) {
-          	    def user_id = it.getLastBuild().getCauses()[0].getUserId()
-
-          	    def u = User.get(user_id)
-          	    def user_name = it.getLastBuild().getCauses()[0].getUserName()
-                def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
-                def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
-                def jenkins_url = "http://localhost:8080"
-                build job:
-                    '../Test/Test_Android_Custom_Branch',
-                    parameters: [
-                        string(name: 'Suite', value: "${params.Test_To_Execute}"),
-                        string(name: 'App_Path', value: "${jenkins_url}/job/Mobile/job/PedidosYa_Android_Custom_Branch/${BUILD_NUMBER}/artifact"),
-                        booleanParam(name: 'Testrail_Flag', value: false),
-                        string(name: 'Emails_To_Notify', value: emails_to_notify),
-                        string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
-                        string(name: 'Started_By', value: user_name)
-                    ],
-                    propagate: false,
-                    wait: false
-
-          	}
-        };
+        def jenkins_url = "http://localhost:8080"
+        build job:
+            '../Automation-Android',
+            parameters: [
+                string(name: 'Suite', value: "REGRESSION"),
+                string(name: 'App_Path', value: "${jenkins_url}/job/Mobile/job/PedidosYa_Android/${BUILD_NUMBER}/artifact"),
+                string(name: 'App_Name', value: "pedidosYa-peya-staging-peyaRelease.apk.zip"),
+                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
+            ],
+            propagate: false,
+            wait: false
 
     }
 }

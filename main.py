@@ -32,6 +32,9 @@ def set_scripts_parameters():
                         choices=("ALL", OS_Android, OS_iOS, OS_Web),
                         help='Filter by the platform')
 
+    parser.add_argument('--iphone_udid', metavar='iphone_udid', type=str, required=True,
+                        help='iPhone udid to build the app')
+
     return parser.parse_args()
 
 
@@ -148,6 +151,7 @@ def main():
                     job['full_name'],
                     job['setup'],
                     get_job_label(job),
+                    args.iphone_udid,
                     update_if_exists=True
                 )
 

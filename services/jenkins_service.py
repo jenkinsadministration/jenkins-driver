@@ -111,7 +111,7 @@ class JenkinsService:
             else:
                 print("   The job «%s» already exists" % job_name)
 
-    def create_build_job(self, job_name, setup, label, update_if_exists=True):
+    def create_build_job(self, job_name, setup, label, iphone_udid, update_if_exists=True):
         repository = setup['repository']
         cron = setup['cron']
         log_rotate = int(setup['log_rotate'])
@@ -125,6 +125,12 @@ class JenkinsService:
         else:
             athenea = None
 
+        show_parameters = False
+
+        for p in parameters:
+            if p['is_parameterizable']:
+                show_parameters = True
+
         template = self.template_env.get_template(template_name)
 
         job_config = template.render(
@@ -133,7 +139,9 @@ class JenkinsService:
             log_rotate=log_rotate,
             parameters=parameters,
             label=label,
-            athenea=athenea
+            athenea=athenea,
+            show_parameters=show_parameters,
+            iphone_udid=iphone_udid
         )
 
         self.create_folder_path(job_name)
