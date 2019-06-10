@@ -35,7 +35,7 @@ def set_scripts_parameters():
     parser.add_argument('--iphone_udid', metavar='iphone_udid', type=str, required=True,
                         help='iPhone udid to build the app')
 
-    parser.add_argument('--update_if_exists', metavar='update_if_exists', type=bool, required=False, default=True,
+    parser.add_argument('--update_if_exists', metavar='update_if_exists', type=str, required=False, default="true",
                         help='Update the Jenkins job if it exists')
 
     return parser.parse_args()
@@ -86,12 +86,12 @@ def get_plugins():
 
 def is_type_allowed(job_type):
     global args
-    return args.allowed_type == 'ALL' or job_type == args.allowed_type
+    return args.allowed_type == 'ALL' or str(job_type).upper() == args.allowed_type
 
 
 def is_platform_allowed(platform):
     global args
-    return args.allowed_platform == 'ALL' or platform == args.allowed_platform
+    return args.allowed_platform == 'ALL' or str(platform).upper() == args.allowed_platform
 
 
 def main():
@@ -138,6 +138,8 @@ def main():
 
     jobs = get_jobs()
 
+    update_if_exists = args.update_if_exists == 'true'
+
     for job in jobs:
         if is_type_allowed(job['type']) and is_platform_allowed(job['platform']):
             if job['type'] == 'TEST':
@@ -147,7 +149,7 @@ def main():
                     get_job_label(job),
                     job['platform'],
                     job['browser'],
-                    update_if_exists=args.update_if_exists
+                    update_if_exists=update_if_exists
                 )
             elif job['type'] == 'BUILD':
                 jenkins_service.create_build_job(
@@ -155,7 +157,7 @@ def main():
                     job['setup'],
                     get_job_label(job),
                     args.iphone_udid,
-                    update_if_exists=args.update_if_exists
+                    update_if_exists=update_if_exists
                 )
 
     print('\nAll jobs were created')
