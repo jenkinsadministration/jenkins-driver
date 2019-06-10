@@ -35,6 +35,9 @@ def set_scripts_parameters():
     parser.add_argument('--iphone_udid', metavar='iphone_udid', type=str, required=True,
                         help='iPhone udid to build the app')
 
+    parser.add_argument('--update_if_exists', metavar='update_if_exists', type=bool, required=False, default=True,
+                        help='Update the Jenkins job if it exists')
+
     return parser.parse_args()
 
 
@@ -56,9 +59,9 @@ def restart_server():
 
 def get_jobs():
     resp = requests.get(
-                url='https://us-central1-jenkinsadmin.cloudfunctions.net/jobs'
-            )
-            
+        url='https://us-central1-jenkinsadmin.cloudfunctions.net/jobs'
+    )
+
     if resp.status_code != 200:
         raise Exception('Something gone wrong')
 
@@ -71,10 +74,10 @@ def get_plugins():
     }
 
     resp = requests.post(
-            url='https://us-central1-jenkinsadmin.cloudfunctions.net/query/graphql',
-            json=data
-        )
-    
+        url='https://us-central1-jenkinsadmin.cloudfunctions.net/query/graphql',
+        json=data
+    )
+
     if resp.status_code != 200:
         raise Exception('Something gone wrong')
 
@@ -144,7 +147,7 @@ def main():
                     get_job_label(job),
                     job['platform'],
                     job['browser'],
-                    update_if_exists=True
+                    update_if_exists=args.update_if_exists
                 )
             elif job['type'] == 'BUILD':
                 jenkins_service.create_build_job(
@@ -152,7 +155,7 @@ def main():
                     job['setup'],
                     get_job_label(job),
                     args.iphone_udid,
-                    update_if_exists=True
+                    update_if_exists=args.update_if_exists
                 )
 
     print('\nAll jobs were created')
