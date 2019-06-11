@@ -94,9 +94,9 @@ BUILD_JOB_NAME = "${JOB_NAME}"
         sh "cd ./PedidosYaAS &amp;&amp; ./gradlew assemblePeyaStagingPeyaRelease"
     }
     stage('Publish') {
-        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/PeyaRelease &amp;&amp; zip -r pedidosYa-peya-staging-PeyaRelease.apk.zip pedidosYa-peya-staging-PeyaRelease.apk'
-        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/PeyaRelease/pedidosYa-peya-staging-PeyaRelease.apk.zip ./pedidosYa-peya-staging-PeyaRelease.apk.zip'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'pedidosYa-peya-staging-PeyaRelease.apk.zip', onlyIfSuccessful: true
+        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; zip -r pedidosYa-peya-staging-PeyaRelease.apk.zip pedidosYa-peya-staging-peyaRelease.apk'
+        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/pedidosYa-peya-staging-peyaRelease.apk.zip ./pedidosYa-peya-staging-peyaRelease.apk.zip'
+        archiveArtifacts allowEmptyArchive: false, artifacts: 'pedidosYa-peya-staging-peyaRelease.apk.zip', onlyIfSuccessful: true
     }
 
     stage('Get App Version') {
