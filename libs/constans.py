@@ -1,4 +1,5 @@
-OS_iOS = 'IPHONE'
+OS_iOS = 'IOS'
+OS_iPhone = 'IPHONE'
 OS_Android = 'ANDROID'
 OS_Web = 'WEB'
 

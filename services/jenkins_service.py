@@ -113,6 +113,7 @@ class JenkinsService:
 
     def create_build_job(self, job_name, setup, label, iphone_udid, update_if_exists=True):
         repository = setup['repository']
+        branch = setup['branch']
         cron = setup['cron']
         log_rotate = int(setup['log_rotate'])
         template_name = setup['template']
@@ -135,6 +136,7 @@ class JenkinsService:
 
         job_config = template.render(
             repository=repository,
+            branch=branch,
             cron=cron,
             log_rotate=log_rotate,
             parameters=parameters,

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from libs.constans import BUILD_JOB, TEST_JOB, OS_Android, OS_iOS, OS_Web
+from libs.constans import BUILD_JOB, TEST_JOB, OS_Android, OS_iOS, OS_Web, OS_iPhone
 from services.jenkins_service import JenkinsService
 from services.jenkins_service import get_job_label
 
@@ -29,7 +29,7 @@ def set_scripts_parameters():
                         help='Filter by the type of job to be created/updated')
 
     parser.add_argument('--allowed_platform', metavar='allowed_platform', type=str, required=True,
-                        choices=("ALL", OS_Android, OS_iOS, OS_Web),
+                        choices=("ALL", OS_Android, OS_iPhone, OS_iOS, OS_Web),
                         help='Filter by the platform')
 
     parser.add_argument('--iphone_udid', metavar='iphone_udid', type=str, required=True,

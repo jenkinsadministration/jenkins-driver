@@ -84,7 +84,7 @@ BUILD_JOB_NAME = "${JOB_NAME}"
     stage('Preparation') {
         currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
         checkout([$class: 'GitSCM',
-  	        branches: [[name: "${params.Branch}"]],
+  	        branches: [[name: "{{branch}}"]],
   	        extensions: [[$class: 'CloneOption', timeout: 120]],
   	        gitTool: 'Default',
             userRemoteConfigs: [[url: '{{repository}}']]
@@ -98,6 +98,20 @@ BUILD_JOB_NAME = "${JOB_NAME}"
         sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
         archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
     }
+
+    stage('Get App Version') {
+        def version = sh returnStdout: true, script: """
+        a=\$(grep -F -A1 "CFBundleShortVersionString" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
+        b=\${a//&lt;string>/}
+        version=\${b//&lt;\\/string>/}
+        echo \$version
+        """
+        version = version.trim()
+        print('{"version": "' + version + '"}')
+        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+
+    }
+
     stage('Fire Tests') {
 
         def jenkins_url = "http://localhost:8080"
