@@ -90,10 +90,6 @@ pipeline {
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
-            }
-        }
-        stage('Update Dashboard') {
-            steps {
                 httpRequest httpMode: 'PUT', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/dashboard_news'
             }
         }
