@@ -106,8 +106,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
         read -ra b &lt;&lt;&lt; \"\$a\"
         version=\"\${b[1]}\"
         echo \$version
-        version = version.trim()
         """
+        version = version.trim()
         def bundle_version = sh returnStdout: true, script: """
         a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
         IFS='='
