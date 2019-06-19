@@ -119,15 +119,15 @@ BUILD_JOB_NAME = "${JOB_NAME}"
         httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
 
     }
-
+    {% if job_of_test != '' %}
     stage('Fire Tests') {
 
-        def jenkins_url = "http://localhost:8080"
+        def jenkins_url = "{{jenkins_url}}"
         build job:
-            '../Automation-iPhone',
+            "{{job_of_test}}",
             parameters: [
                 string(name: 'Suite', value: "REGRESSION"),
-                string(name: 'App_Path', value: "${jenkins_url}/job/Mobile/job/PedidosYa_iOS/${BUILD_NUMBER}/artifact"),
+                string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
                 string(name: 'App_Name', value: "PedidosYa.app.zip"),
                 string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
             ],
@@ -135,6 +135,7 @@ BUILD_JOB_NAME = "${JOB_NAME}"
             wait: false
 
     }
+    {% endif %}
 }
         </script>
         <sandbox>true</sandbox>

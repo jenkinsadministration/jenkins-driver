@@ -38,6 +38,12 @@ def set_scripts_parameters():
     parser.add_argument('--update_if_exists', metavar='update_if_exists', type=str, required=False, default="true",
                         help='Update the Jenkins job if it exists')
 
+    parser.add_argument('--install_plugins', metavar='install_plugins', type=str, required=False, default="false",
+                        help='Install/update plugins')
+
+    parser.add_argument('--sync_jobs', metavar='sync_jobs', type=str, required=False, default="false",
+                        help='Omit the synchronization of jobs')
+
     return parser.parse_args()
 
 
@@ -109,9 +115,7 @@ def main():
 
     jenkins_service = JenkinsService(server)
 
-    install_plugins = False
-
-    if install_plugins:
+    if args.install_plugins == 'true':
 
         plugins = get_plugins()
 
@@ -140,27 +144,30 @@ def main():
 
     update_if_exists = args.update_if_exists == 'true'
 
-    for job in jobs:
-        if is_type_allowed(job['type']) and is_platform_allowed(job['platform']):
-            if job['type'] == 'TEST':
-                jenkins_service.create_test_job(
-                    job['full_name'],
-                    job['setup'],
-                    get_job_label(job),
-                    job['platform'],
-                    job['browser'],
-                    update_if_exists=update_if_exists
-                )
-            elif job['type'] == 'BUILD':
-                jenkins_service.create_build_job(
-                    job['full_name'],
-                    job['setup'],
-                    get_job_label(job),
-                    args.iphone_udid,
-                    update_if_exists=update_if_exists
-                )
+    if args.sync_jobs == 'true':
 
-    print('\nAll jobs were created')
+        for job in jobs:
+            if is_type_allowed(job['type']) and is_platform_allowed(job['platform']):
+                if job['type'] == 'TEST':
+                    jenkins_service.create_test_job(
+                        job['full_name'],
+                        job['setup'],
+                        get_job_label(job),
+                        job['platform'],
+                        job['browser'],
+                        update_if_exists=update_if_exists
+                    )
+                elif job['type'] == 'BUILD':
+                    jenkins_service.create_build_job(
+                        job['full_name'],
+                        job['setup'],
+                        get_job_label(job),
+                        args.iphone_udid,
+                        jenkins_url=args.jenkins_url,
+                        update_if_exists=update_if_exists
+                    )
+
+        print('\nAll jobs were created')
 
     print('\nConfiguration finished... enjoy your jenkins')
 

@@ -111,7 +111,7 @@ class JenkinsService:
             else:
                 print("   The job «%s» already exists" % job_name)
 
-    def create_build_job(self, job_name, setup, label, iphone_udid, update_if_exists=True):
+    def create_build_job(self, job_name, setup, label, iphone_udid, jenkins_url='http://localhost:8080', update_if_exists=True):
         repository = setup['repository']
         branch = setup['branch']
         cron = setup['cron']
@@ -128,9 +128,16 @@ class JenkinsService:
 
         show_parameters = False
 
+        job_of_test = ''
+
+        if 'job_of_test' in setup:
+            job_of_test = setup['job_of_test']
+
         for p in parameters:
             if p['is_parameterizable']:
                 show_parameters = True
+
+        job_path = '/job/' + '/job/'.join(job_name.split('/'))
 
         template = self.template_env.get_template(template_name)
 
@@ -140,9 +147,12 @@ class JenkinsService:
             cron=cron,
             log_rotate=log_rotate,
             parameters=parameters,
+            job_path=job_path,
             label=label,
             athenea=athenea,
             show_parameters=show_parameters,
+            job_of_test=job_of_test,
+            jenkins_url=jenkins_url,
             iphone_udid=iphone_udid
         )
 
