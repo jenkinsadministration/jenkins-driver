@@ -86,75 +86,78 @@ import hudson.tasks.Mailer
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
- node {
-    stage('Preparation') {
-        currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-        checkout([$class: 'GitSCM',
-  	        branches: [[name: "${params.Branch}"]],
-  	        extensions: [[$class: 'CloneOption', timeout: 120]],
-  	        gitTool: 'Default',
-            userRemoteConfigs: [[url: '{{repository}}']]
-  	    ])
+pipeline {
+    agent { node { label '{{label}}' } }
+    stages {
+        stage('Preparation') {
+            currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+            checkout([$class: 'GitSCM',
+                branches: [[name: "${params.Branch}"]],
+                extensions: [[$class: 'CloneOption', timeout: 120]],
+                gitTool: 'Default',
+                userRemoteConfigs: [[url: '{{repository}}']]
+            ])
+        }
+        stage('Build') {
+            sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+        }
+        stage('Publish') {
+            sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
+            sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
+        }
+
+        stage('Get App Version') {
+            def version = sh returnStdout: true, script: """
+            a=\$(grep -F -A1 "CFBundleShortVersionString" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
+            b=\${a//&lt;string>/}
+            version=\${b//&lt;\\/string>/}
+            echo \$version
+            """
+            version = version.trim()
+            def bundle_version = sh returnStdout: true, script: """
+            a=\$(grep -F -A1 "CFBundleVersion" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
+            b=\${a//&lt;string>/}
+            version=\${b//&lt;\\/string>/}
+            echo \$version
+            """
+            bundle_version = bundle_version.trim()
+            version = version + '_' + bundle_version
+            print('{"version": "' + version + '"}')
+            httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+
+        }
+        {% if job_of_test != '' %}
+        stage('Fire Tests') {
+
+            Jenkins.instance.getAllItems(AbstractItem.class).each {
+                if (BUILD_JOB_NAME == it.fullName) {
+                    def user_id = it.getLastBuild().getCauses()[0].getUserId()
+
+                    def u = User.get(user_id)
+                    def user_name = it.getLastBuild().getCauses()[0].getUserName()
+                    def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
+                    def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
+                    def jenkins_url = "{{jenkins_url}}"
+                    build job:
+                        "{{job_of_test}}",
+                        parameters: [
+                            string(name: 'Suite', value: "${params.Test_To_Execute}"),
+                            string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                            booleanParam(name: 'Testrail_Flag', value: false),
+                            string(name: 'Emails_To_Notify', value: emails_to_notify),
+                            string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
+                            string(name: 'Started_By', value: user_name)
+                        ],
+                        propagate: false,
+                        wait: false
+
+                }
+            };
+
+        }
+        {% endif %}
     }
-    stage('Build') {
-        sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
-    }
-    stage('Publish') {
-        sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
-        sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
-    }
-
-    stage('Get App Version') {
-        def version = sh returnStdout: true, script: """
-        a=\$(grep -F -A1 "CFBundleShortVersionString" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
-        b=\${a//&lt;string>/}
-        version=\${b//&lt;\\/string>/}
-        echo \$version
-        """
-        version = version.trim()
-        def bundle_version = sh returnStdout: true, script: """
-        a=\$(grep -F -A1 "CFBundleVersion" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
-        b=\${a//&lt;string>/}
-        version=\${b//&lt;\\/string>/}
-        echo \$version
-        """
-        bundle_version = bundle_version.trim()
-        version = version + '_' + bundle_version
-        print('{"version": "' + version + '"}')
-        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
-
-    }
-    {% if job_of_test != '' %}
-    stage('Fire Tests') {
-
-        Jenkins.instance.getAllItems(AbstractItem.class).each {
-            if (BUILD_JOB_NAME == it.fullName) {
-                def user_id = it.getLastBuild().getCauses()[0].getUserId()
-
-                def u = User.get(user_id)
-                def user_name = it.getLastBuild().getCauses()[0].getUserName()
-                def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
-                def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
-                def jenkins_url = "{{jenkins_url}}"
-                build job:
-                    "{{job_of_test}}",
-                    parameters: [
-                        string(name: 'Suite', value: "${params.Test_To_Execute}"),
-                        string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        booleanParam(name: 'Testrail_Flag', value: false),
-                        string(name: 'Emails_To_Notify', value: emails_to_notify),
-                        string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
-                        string(name: 'Started_By', value: user_name)
-                    ],
-                    propagate: false,
-                    wait: false
-
-            }
-        };
-
-    }
-    {% endif %}
 }
         </script>
         <sandbox>true</sandbox>

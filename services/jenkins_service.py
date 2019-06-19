@@ -1,16 +1,16 @@
 import jenkins
 from jenkins import Jenkins
 from jinja2 import FileSystemLoader, Environment, select_autoescape
-import json
-
-from libs.constans import OS_iOS, OS_Android
-from libs.ios import IOS
 
 
 def get_job_label(job_configuration):
     if job_configuration['type'] == 'TEST':
-        if job_configuration['platform'] == 'ANDROID':
-            return 'TEST_ANDROID'
+        if job_configuration['platform'] != job_configuration['browser'] :
+            return "TEST_%s_%s" % (job_configuration['platform'], job_configuration['browser'])
+        else:
+            return "TEST_%s" % job_configuration['platform']
+    else:
+        return "BUILD_%s" % job_configuration['platform']
 
 
 def get_global_environment_vars(environment_var):

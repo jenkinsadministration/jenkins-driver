@@ -76,7 +76,7 @@ import groovy.json.*
 def build_ok = true
 
 pipeline {
-    agent any
+    agent { node { label '{{label}}' } }
     stages {
         stage('Preparation') {
             steps {
@@ -96,18 +96,11 @@ pipeline {
         stage('Tests') {
             steps {
                 script {
-                    withEnv([
-                                "JAVA_HOME=${tool 'Java8' }",
-                                "PATH+MAVEN=${tool 'Maven3'}/bin:${env.JAVA_HOME}/bin"
-                            ])
-                    {
-                        try {
-                            sh "export PATH=$PATH:/usr/local/bin/adb"
-                            sh "mvn clean test{{maven_params}}"
-                        } catch (exc) {
-                            currentBuild.result = 'FAILED'
-                            build_ok = false
-                        }
+                    try {
+                        sh "/usr/bin/mvn clean test{{maven_params}}"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
                     }
                 }
             }

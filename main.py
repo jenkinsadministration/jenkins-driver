@@ -41,7 +41,7 @@ def set_scripts_parameters():
     parser.add_argument('--install_plugins', metavar='install_plugins', type=str, required=False, default="false",
                         help='Install/update plugins')
 
-    parser.add_argument('--sync_jobs', metavar='sync_jobs', type=str, required=False, default="false",
+    parser.add_argument('--sync_jobs', metavar='sync_jobs', type=str, required=False, default="true",
                         help='Omit the synchronization of jobs')
 
     return parser.parse_args()
