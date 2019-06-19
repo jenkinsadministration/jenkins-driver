@@ -144,7 +144,7 @@ pipeline {
                     "{{job_of_test}}",
                     parameters: [
                         string(name: 'Suite', value: "REGRESSION"),
-                        string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                        string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
                         string(name: 'App_Name', value: "pedidosYa-peya-staging-peyaRelease.apk.zip"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],

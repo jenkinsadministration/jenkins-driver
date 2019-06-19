@@ -157,7 +157,7 @@ pipeline {
                             "{{job_of_test}}",
                             parameters: [
                                 string(name: 'Suite', value: "${params.Test_To_Execute}"),
-                                string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
                                 booleanParam(name: 'Testrail_Flag', value: false),
                                 string(name: 'Emails_To_Notify', value: emails_to_notify),
                                 string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),

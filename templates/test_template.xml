@@ -82,8 +82,8 @@ pipeline {
             steps {
                 script {
                     currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
-                slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 checkout([$class: 'GitSCM',
                     branches: [[name: "{{branch}}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
@@ -97,7 +97,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "/usr/bin/mvn clean test{{maven_params}}"
+                        sh "/usr/bin/mvn clean test {{maven_params}}"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
@@ -138,7 +138,7 @@ pipeline {
                         status = "failed"
                         color = "danger"
                     }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' » ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
             }
         }
