@@ -90,7 +90,7 @@ pipeline {
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
-                httpRequest httpMode: 'PUT', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/dashboard_news'
+                httpRequest httpMode: 'GET', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/notifications'
             }
         }
         stage('Tests') {
@@ -140,11 +140,6 @@ pipeline {
                     }
                     slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
-            }
-        }
-        stage('Update Dashboard') {
-            steps {
-                httpRequest httpMode: 'PUT', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/dashboard_news'
             }
         }
     }
