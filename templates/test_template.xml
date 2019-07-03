@@ -90,14 +90,13 @@ pipeline {
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
-                httpRequest httpMode: 'GET', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/notifications'
             }
         }
         stage('Tests') {
             steps {
                 script {
                     try {
-                        sh "/usr/bin/mvn clean test {{maven_params}}"
+                        sh "{{mvn_path}} clean test {{maven_params}}"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false

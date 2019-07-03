@@ -83,6 +83,12 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Clean') {
+            steps {
+                sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
+                sh "/usr/bin/git reset HEAD --hard"
+            }
+        }
         stage('Preparation') {
             steps {
                 script {
@@ -98,14 +104,14 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleapp24Stagingapp24Release"
             }
         }
         stage('Publish') {
             steps {
-                sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
-                sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
+                sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/app24Staging/app24Release &amp;&amp; zip -r pedidosYa-app24-staging-app24Release.apk.zip pedidosYa-app24-staging-app24Release.apk'
+                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/app24Staging/app24Release/pedidosYa-app24-staging-app24Release.apk.zip ./Apetito24.apk.zip'
+                archiveArtifacts allowEmptyArchive: false, artifacts: 'Apetito24.apk.zip', onlyIfSuccessful: true
             }
         }
 
@@ -113,16 +119,18 @@ pipeline {
             steps {
                 script {
                     def version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleShortVersionString" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
-                    b=\${a//&lt;string>/}
-                    version=\${b//&lt;\\/string>/}
+                    a=\$(grep -F "app24_version_name=" PedidosYaAS/gradle.properties)
+                    IFS='='
+                    read -ra b &lt;&lt;&lt; \"\$a\"
+                    version=\"\${b[1]}\"
                     echo \$version
                     """
                     version = version.trim()
                     def bundle_version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleVersion" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
-                    b=\${a//&lt;string>/}
-                    version=\${b//&lt;\\/string>/}
+                    a=\$(grep -F "app24_version_code=" PedidosYaAS/gradle.properties)
+                    IFS='='
+                    read -ra b &lt;&lt;&lt; \"\$a\"
+                    version=\"\${b[1]}\"
                     echo \$version
                     """
                     bundle_version = bundle_version.trim()
@@ -143,7 +151,7 @@ pipeline {
                     parameters: [
                         string(name: 'Suite', value: "REGRESSION"),
                         string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "PedidosYa.app.zip"),
+                        string(name: 'App_Name', value: "Apetito24.apk.zip"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],
                     propagate: false,

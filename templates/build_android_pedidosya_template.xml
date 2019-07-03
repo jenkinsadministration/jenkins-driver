@@ -83,6 +83,12 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Clean') {
+            steps {
+                sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
+                sh "/usr/bin/git reset HEAD --hard"
+            }
+        }
         stage('Preparation') {
             steps {
                 script {
@@ -104,8 +110,8 @@ pipeline {
         stage('Publish') {
             steps {
                 sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; zip -r pedidosYa-peya-staging-peyaRelease.apk.zip pedidosYa-peya-staging-peyaRelease.apk'
-                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/pedidosYa-peya-staging-peyaRelease.apk.zip ./pedidosYa-peya-staging-peyaRelease.apk.zip'
-                archiveArtifacts allowEmptyArchive: false, artifacts: 'pedidosYa-peya-staging-peyaRelease.apk.zip', onlyIfSuccessful: true
+                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/pedidosYa-peya-staging-peyaRelease.apk.zip ./PedidosYa.apk.zip'
+                archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
             }
         }
 
@@ -145,7 +151,7 @@ pipeline {
                     parameters: [
                         string(name: 'Suite', value: "REGRESSION"),
                         string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "pedidosYa-peya-staging-peyaRelease.apk.zip"),
+                        string(name: 'App_Name', value: "PedidosYa.apk.zip"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],
                     propagate: false,

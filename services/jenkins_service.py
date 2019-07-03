@@ -63,6 +63,11 @@ class JenkinsService:
         maven_params += ' -DDRIVER=' + platform.upper()
         maven_params += ' -DBROWSER=' + browser.upper()
 
+        mvn_path = '/usr/bin/mvn'
+
+        if platform == 'iPhone':
+            mvn_path = '/usr/local/bin/mvn'
+
         show_parameters = False
 
         for p in parameters:
@@ -91,6 +96,7 @@ class JenkinsService:
             parameters=parameters,
             show_parameters=show_parameters,
             label=label,
+            mvn_path=mvn_path,
             maven_params=maven_params,
             android_home=android_home,
             athenea=athenea,
@@ -111,7 +117,7 @@ class JenkinsService:
             else:
                 print("   The job «%s» already exists" % job_name)
 
-    def create_build_job(self, job_name, setup, label, iphone_udid, jenkins_url='http://localhost:8080', update_if_exists=True):
+    def create_build_job(self, job_name, setup, label, iphone_udid, jenkins_url='http://192.168.19.34:8080', update_if_exists=True):
         repository = setup['repository']
         branch = setup['branch']
         cron = setup['cron']
@@ -136,6 +142,9 @@ class JenkinsService:
         for p in parameters:
             if p['is_parameterizable']:
                 show_parameters = True
+
+        if not show_parameters:
+            show_parameters = 'custom_branch' in template_name
 
         job_path = '/job/' + '/job/'.join(job_name.split('/'))
 
