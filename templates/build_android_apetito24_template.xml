@@ -137,6 +137,9 @@ pipeline {
                     version = version + '_' + bundle_version
                     print('{"version": "' + version + '"}')
                     httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                    {% if peya_app_id != '' %}
+                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/Apetito24.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                    {% endif %}
                 }
             }
         }

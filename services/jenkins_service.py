@@ -139,6 +139,11 @@ class JenkinsService:
         if 'job_of_test' in setup:
             job_of_test = setup['job_of_test']
 
+        peya_app_id = ''
+
+        if 'peya_app_id' in setup:
+            peya_app_id = setup['peya_app_id']
+
         for p in parameters:
             if p['is_parameterizable']:
                 show_parameters = True
@@ -161,6 +166,7 @@ class JenkinsService:
             athenea=athenea,
             show_parameters=show_parameters,
             job_of_test=job_of_test,
+            peya_app_id=peya_app_id,
             jenkins_url=jenkins_url,
             iphone_udid=iphone_udid
         )
