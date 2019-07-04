@@ -96,6 +96,8 @@ pipeline {
                 ])
             }
         }
+
+        {% if app_extension == '.app' %}
         stage('Build') {
             steps {
                 sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
@@ -108,6 +110,22 @@ pipeline {
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
             }
         }
+        {% endif %}
+
+        {% if app_extension == '.ipa' %}
+        stage('Build') {
+            steps {
+                sh "/usr/local/bin/fastlane buildDemo scheme:\"PedidosYa! Demo\""
+            }
+        }
+        stage('Publish') {
+            steps {
+                sh 'mv PedidosYa\\!.ipa PedidosYa.ipa'
+                sh 'zip -r PedidosYa.ipa.zip PedidosYa.ipa'
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.ipa.zip', onlyIfSuccessful: true
+            }
+        }
+        {% endif %}
 
         stage('Get App Version') {
             steps {
@@ -129,6 +147,9 @@ pipeline {
                     version = version + '_' + bundle_version
                     print('{"version": "' + version + '"}')
                     httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                    {% if peya_app_id != '' %}
+                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "app_extension": "{{app_extension}}", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                    {% endif %}
                 }
             }
         }
@@ -143,7 +164,7 @@ pipeline {
                     parameters: [
                         string(name: 'Suite', value: "REGRESSION"),
                         string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "PedidosYa.app.zip"),
+                        string(name: 'App_Name', value: "PedidosYa{{app_extension}}.zip"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],
                     propagate: false,

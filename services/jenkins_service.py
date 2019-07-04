@@ -153,6 +153,11 @@ class JenkinsService:
 
         job_path = '/job/' + '/job/'.join(job_name.split('/'))
 
+        app_extension = ''
+
+        if 'app_extension' in setup:
+            app_extension = setup['app_extension']
+
         template = self.template_env.get_template(template_name)
 
         job_config = template.render(
@@ -166,6 +171,7 @@ class JenkinsService:
             athenea=athenea,
             show_parameters=show_parameters,
             job_of_test=job_of_test,
+            app_extension=app_extension,
             peya_app_id=peya_app_id,
             jenkins_url=jenkins_url,
             iphone_udid=iphone_udid
