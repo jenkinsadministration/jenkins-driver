@@ -96,31 +96,52 @@ pipeline {
                 ])
             }
         }
+
+        {% if app_extension == '.app' %}
         stage('Build') {
             steps {
-                sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                sh "rm Podfile.lock"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+                sh "/usr/bin/xcodebuild -scheme 'Appetito24 Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
             }
         }
         stage('Publish') {
             steps {
-                sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
-                sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
+                sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r Appetito24.app.zip Appetito24.app'
+                sh 'mv build/Products/Debug-iphonesimulator/Appetito24.app.zip ./Appetito24.app.zip'
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'Appetito24.app.zip', onlyIfSuccessful: true
             }
         }
+        {% endif %}
+
+        {% if app_extension == '.ipa' %}
+        stage('Build') {
+            steps {
+                sh "rm Podfile.lock"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+                sh "/usr/local/bin/fastlane buildDemo scheme:\"Appetito24 Demo\""
+            }
+        }
+        stage('Publish') {
+            steps {
+                sh 'zip -r Appetito24.ipa.zip Appetito24.ipa'
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'Appetito24.ipa.zip', onlyIfSuccessful: true
+            }
+        }
+        {% endif %}
 
         stage('Get App Version') {
             steps {
                 script {
                     def version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleShortVersionString" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
+                    a=\$(grep -F -A1 "CFBundleShortVersionString" Appetito24-Info.plist | grep -v "&lt;key>")
                     b=\${a//&lt;string>/}
                     version=\${b//&lt;\\/string>/}
                     echo \$version
                     """
                     version = version.trim()
                     def bundle_version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleVersion" PedidosYa\\!/PedidosYa\\!-Info.plist | grep -v "&lt;key>")
+                    a=\$(grep -F -A1 "CFBundleVersion" Appetito24-Info.plist | grep -v "&lt;key>")
                     b=\${a//&lt;string>/}
                     version=\${b//&lt;\\/string>/}
                     echo \$version
@@ -146,7 +167,7 @@ pipeline {
                     parameters: [
                         string(name: 'Suite', value: "REGRESSION"),
                         string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "PedidosYa.app.zip"),
+                        string(name: 'App_Name', value: "Appetito24{{app_extension}}.zip"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],
                     propagate: false,

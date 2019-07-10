@@ -151,6 +151,9 @@ class JenkinsService:
         if not show_parameters:
             show_parameters = 'custom_branch' in template_name
 
+        if not show_parameters:
+            show_parameters = branch == ''
+
         job_path = '/job/' + '/job/'.join(job_name.split('/'))
 
         app_extension = ''
