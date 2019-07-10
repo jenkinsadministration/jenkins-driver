@@ -141,7 +141,7 @@ pipeline {
                 expression { params.Lane == 'Demo' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane demo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
             }
         }
         stage ('Build Peya Demo') {
@@ -149,7 +149,7 @@ pipeline {
                 expression { params.Lane == 'Peya Demo' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane peyaDemo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane peyaDemo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
             }
         }
     }
