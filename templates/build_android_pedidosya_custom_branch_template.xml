@@ -18,12 +18,12 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                            <hudson.model.StringParameterDefinition>
-                                <name>Branch</name>
-                                <description></description>
-                                <defaultValue></defaultValue>
-                                <trim>false</trim>
-                            </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>Branch</name>
+                    <description></description>
+                    <defaultValue></defaultValue>
+                    <trim>false</trim>
+                </hudson.model.StringParameterDefinition>
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
@@ -137,6 +137,9 @@ pipeline {
                     version = version + '_' + bundle_version
                     print('{"version": "' + version + '"}')
                     httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                    {% if peya_app_id != '' %}
+                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                    {% endif %}
                 }
             }
         }
@@ -144,28 +147,31 @@ pipeline {
         stage('Fire Tests') {
             steps {
                 script {
-                Jenkins.instance.getAllItems(AbstractItem.class).each {
-                    if (BUILD_JOB_NAME == it.fullName) {
-                        def user_id = it.getLastBuild().getCauses()[0].getUserId()
+                    Jenkins.instance.getAllItems(AbstractItem.class).each {
+                        if (BUILD_JOB_NAME == it.fullName) {
+                            def user_id = it.getLastBuild().getCauses()[0].getUserId()
 
-                        def u = User.get(user_id)
-                        def user_name = it.getLastBuild().getCauses()[0].getUserName()
-                        def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
-                        def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
-                        def jenkins_url = "{{jenkins_url}}"
-                        build job:
-                            "{{job_of_test}}",
-                            parameters: [
-                                string(name: 'Suite', value: "REGRESSION"),
-                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                                string(name: 'App_Name', value: "PedidosYa.apk.zip"),
-                                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
-                            ],
-                            propagate: false,
-                            wait: false
+                            def u = User.get(user_id)
+                            def user_name = it.getLastBuild().getCauses()[0].getUserName()
+                            def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
+                            def emails_to_notify = user_email + "${params.Emails_To_Notify}"
+                            def jenkins_url = "{{jenkins_url}}"
+                            build job:
+                                "{{job_of_test}}",
+                                parameters: [
+                                    string(name: 'Suite', value: "${params.Suite}"),
+                                    string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                                    string(name: 'App_Name', value: "PedidosYa.apk.zip"),
+                                    string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación"),
+                                    string(name: 'Emails_To_Notify', value: "${emails_to_notify}"),
+                                    string(name: 'Started_By', value: "${user_name}")
+                                ],
+                                propagate: false,
+                                wait: false
 
-                    }
-                };
+                        }
+                    };
+                }
             }
         }
         {% endif %}
