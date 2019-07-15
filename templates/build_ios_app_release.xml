@@ -118,12 +118,19 @@ pipeline {
                 sh "security unlock-keychain -p Automation01 ~/Library/Keychains/login.keychain"
             }
         }
+        stage('Install Pods') {
+            steps {
+                sh "rm Podfile.lock"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+            }
+        }
         stage ('Build Demo Release Candidate') {
             when {
                 expression { params.Lane == 'DemoRC' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane demoRC"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoRC"
             }
         }
         stage ('Build Night') {
@@ -131,7 +138,7 @@ pipeline {
                 expression { params.Lane == 'Night' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane night"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane night"
             }
         }
         stage ('Build Release') {
@@ -139,7 +146,7 @@ pipeline {
                 expression { params.Lane == 'Release' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane release"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane release"
             }
         }
         stage ('Build Demo Night') {
@@ -147,7 +154,7 @@ pipeline {
                 expression { params.Lane == 'Demo Night' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; /usr/local/bin/fastlane demoNight"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoNight"
             }
         }
     }

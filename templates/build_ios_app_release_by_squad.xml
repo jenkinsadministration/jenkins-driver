@@ -136,6 +136,13 @@ pipeline {
                 sh "security unlock-keychain -p Automation01 ~/Library/Keychains/login.keychain"
             }
         }
+        stage('Install Pods') {
+            steps {
+                sh "rm Podfile.lock"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+            }
+        }
         stage ('Build Demo') {
             when {
                 expression { params.Lane == 'Demo' }

@@ -119,7 +119,7 @@ pipeline {
             steps {
                 script {
                     def version = sh returnStdout: true, script: """
-                    a=\$(grep -F "peya_version_name=" PedidosYaAS/gradle.properties)
+                    a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
                     IFS='='
                     read -ra b &lt;&lt;&lt; \"\$a\"
                     version=\"\${b[1]}\"
@@ -154,7 +154,7 @@ pipeline {
                             def u = User.get(user_id)
                             def user_name = it.getLastBuild().getCauses()[0].getUserName()
                             def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
-                            def emails_to_notify = user_email + "${params.Emails_To_Notify}"
+                            def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
                             def jenkins_url = "{{jenkins_url}}"
                             build job:
                                 "{{job_of_test}}",
@@ -162,7 +162,7 @@ pipeline {
                                     string(name: 'Suite', value: "${params.Suite}"),
                                     string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
                                     string(name: 'App_Name', value: "PedidosYa.apk.zip"),
-                                    string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación"),
+                                    string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
                                     string(name: 'Emails_To_Notify', value: "${emails_to_notify}"),
                                     string(name: 'Started_By', value: "${user_name}")
                                 ],

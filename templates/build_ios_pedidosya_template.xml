@@ -96,12 +96,16 @@ pipeline {
                 ])
             }
         }
-
+        stage('Install Pods') {
+            steps {
+                sh "rm Podfile.lock"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+            }
+        }
         {% if app_extension == '.app' %}
         stage('Build') {
             steps {
-                sh "rm Podfile.lock"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                 sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
             }
         }
@@ -117,8 +121,6 @@ pipeline {
         {% if app_extension == '.ipa' %}
         stage('Build') {
             steps {
-                sh "rm Podfile.lock"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                 sh "/usr/local/bin/fastlane buildDemo scheme:\"PedidosYa! Demo\""
             }
         }
