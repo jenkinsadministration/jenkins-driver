@@ -105,7 +105,7 @@ pipeline {
                 build job:
                     "{{job_of_test}}",
                     parameters: [
-                        string(name: 'Suite', value: "REGRESSION")
+                        string(name: 'Suite', value: "REGRESSION"),
                         string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
                     ],
                     propagate: false,
