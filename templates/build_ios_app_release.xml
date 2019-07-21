@@ -113,6 +113,13 @@ pipeline {
                 ])
             }
         }
+        stage('Slack Notification') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
         stage('Unlock Keychain') {
             steps {
                 sh "security unlock-keychain -p Automation01 ~/Library/Keychains/login.keychain"
@@ -120,9 +127,15 @@ pipeline {
         }
         stage('Install Pods') {
             steps {
-                sh "rm Podfile.lock"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+                script {
+                    try {
+                        sh "rm Podfile.lock"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
             }
         }
         stage ('Build Demo Release Candidate') {
@@ -130,7 +143,13 @@ pipeline {
                 expression { params.Lane == 'DemoRC' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoRC"
+                script {
+                    try {
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoRC"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
             }
         }
         stage ('Build Night') {
@@ -138,7 +157,13 @@ pipeline {
                 expression { params.Lane == 'Night' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane night"
+                script {
+                    try {
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane night"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
             }
         }
         stage ('Build Release') {
@@ -146,7 +171,13 @@ pipeline {
                 expression { params.Lane == 'Release' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane release"
+                script {
+                    try {
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane release"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
             }
         }
         stage ('Build Demo Night') {
@@ -154,7 +185,13 @@ pipeline {
                 expression { params.Lane == 'Demo Night' }
             }
             steps {
-                sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoNight"
+                script {
+                    try {
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demoNight"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
             }
         }
     }

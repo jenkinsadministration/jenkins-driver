@@ -96,13 +96,34 @@ pipeline {
                 ])
             }
         }
-
+        stage('Slack Notification') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
+        stage('Install Pods') {
+            steps {
+                script {
+                    try {
+                        sh "rm Podfile.lock"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
+                }
+            }
+        }
         {% if app_extension == '.app' %}
         stage('Build') {
             steps {
-                sh "rm Podfile.lock"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
-                sh "/usr/bin/xcodebuild -scheme 'Domicilios Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                try {
+                    sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                } catch (exc) {
+                    slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
             }
         }
         stage('Publish') {
@@ -117,8 +138,6 @@ pipeline {
         {% if app_extension == '.ipa' %}
         stage('Build') {
             steps {
-                sh "rm Podfile.lock"
-                sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                 sh "/usr/local/bin/fastlane buildDemo scheme:\"Domicilios Demo\""
             }
         }

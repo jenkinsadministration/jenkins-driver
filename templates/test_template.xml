@@ -119,7 +119,7 @@ pipeline {
                 {% endif %}
                 {% if update_execution_details %}
                 // Set execution details
-                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": "' + "${params.Started_By}" +'"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
+                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": ""}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
                 {% endif %}
                 googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
             }

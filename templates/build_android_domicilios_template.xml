@@ -102,9 +102,20 @@ pipeline {
                 ])
             }
         }
+        stage('Slack Notification') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
         stage('Build') {
             steps {
-                sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleDomiStagingDomiRelease"
+                try {
+                    sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleDomiStagingDomiRelease"
+                } catch (exc) {
+                    slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
             }
         }
         stage('Publish') {
