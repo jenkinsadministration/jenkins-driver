@@ -183,7 +183,7 @@ pipeline {
                                 def u = User.get(user_id)
                                 def user_name = it.getLastBuild().getCauses()[0].getUserName()
                                 def user_email = u.getProperty(Mailer.UserProperty.class).getAddress()
-                                def emails_to_notify = user_email + ",${params.Emails_To_Notify}"
+                                def emails_to_notify = "${params.Emails_To_Notify}"
                                 def jenkins_url = "{{jenkins_url}}"
                                 build job:
                                     "{{job_of_test}}",
@@ -192,9 +192,9 @@ pipeline {
                                         string(name: 'App_Path', value: "${jenkins_url}{{job_path}}/${BUILD_NUMBER}/artifact"),
                                         string(name: 'App_Name', value: "PedidosYa.app.zip"),
                                         booleanParam(name: 'Testrail_Flag', value: false),
-                                        string(name: 'Emails_To_Notify', value: emails_to_notify),
+                                        string(name: 'Emails_To_Notify', value: "${emails_to_notify}"),
                                         string(name: 'Reason_Of_Execution', value: "Ejecución de pruebas automatizadas sobre el branch «${params.Branch}»"),
-                                        string(name: 'Started_By', value: user_name),
+                                        string(name: 'Started_By', value: ""),
                                         string(name: 'Suite', value: "${params.Suite}")
                                     ],
                                     propagate: false,
