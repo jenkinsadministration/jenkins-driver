@@ -29,12 +29,6 @@
                     <description>Ejecutar pruebas automatizadas en caso que la compilación sea exitosa</description>
                     <defaultValue>true</defaultValue>
                 </hudson.model.BooleanParameterDefinition>
-                <hudson.model.StringParameterDefinition>
-                    <name>Emails_To_Notify</name>
-                    <description>Ingrese la lista de emails a notificar una vez terminada la ejecución de las pruebas</description>
-                    <defaultValue></defaultValue>
-                    <trim>false</trim>
-                </hudson.model.StringParameterDefinition>
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}

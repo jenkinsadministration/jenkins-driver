@@ -18,12 +18,17 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                            <hudson.model.StringParameterDefinition>
-                                <name>Branch</name>
-                                <description></description>
-                                <defaultValue></defaultValue>
-                                <trim>false</trim>
-                            </hudson.model.StringParameterDefinition>
+                <hudson.model.StringParameterDefinition>
+                    <name>Branch</name>
+                    <description></description>
+                    <defaultValue></defaultValue>
+                    <trim>false</trim>
+                </hudson.model.StringParameterDefinition>
+                <hudson.model.BooleanParameterDefinition>
+                    <name>Run_Tests</name>
+                    <description>Ejecutar pruebas automatizadas en caso que la compilación sea exitosa</description>
+                    <defaultValue>true</defaultValue>
+                </hudson.model.BooleanParameterDefinition>
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
