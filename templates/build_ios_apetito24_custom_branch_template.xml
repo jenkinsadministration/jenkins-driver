@@ -127,7 +127,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                        sh "/usr/bin/xcodebuild -scheme 'Appetito24 Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
                     } catch (exc) {
                         slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                     }
@@ -135,9 +135,9 @@ pipeline {
             }
         }
         stage('Publish') {
-            sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r PedidosYa!.app.zip PedidosYa!.app'
-            sh 'mv build/Products/Debug-iphonesimulator/PedidosYa!.app.zip ./PedidosYa.app.zip'
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
+            sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r Appetito24.app.zip Appetito24.app'
+            sh 'mv build/Products/Debug-iphonesimulator/Appetito24.app.zip ./Appetito24.app.zip'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'Appetito24.app.zip', onlyIfSuccessful: true
         }
         stage('Get App Version') {
             def version = sh returnStdout: true, script: """
