@@ -118,7 +118,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assemblePeyaStagingPeyaRelease"
+                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleapp24Stagingapp24Release"
                     } catch (exc) {
                         slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                     }
@@ -127,17 +127,16 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; zip -r pedidosYa-peya-staging-peyaRelease.apk.zip pedidosYa-peya-staging-peyaRelease.apk'
-                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/pedidosYa-peya-staging-peyaRelease.apk.zip ./pedidosYa-peya-staging-peyaRelease.apk.zip'
-                archiveArtifacts allowEmptyArchive: false, artifacts: 'pedidosYa-peya-staging-peyaRelease.apk.zip', onlyIfSuccessful: true
+                sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/app24Staging/app24Release &amp;&amp; zip -r pedidosYa-app24-staging-app24Release.apk.zip pedidosYa-app24-staging-app24Release.apk'
+                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/app24Staging/app24Release/pedidosYa-app24-staging-app24Release.apk.zip ./Apetito24.apk.zip'
+                archiveArtifacts allowEmptyArchive: false, artifacts: 'Apetito24.apk.zip', onlyIfSuccessful: true
             }
         }
-
         stage('Get App Version') {
             steps {
                 script {
                     def version = sh returnStdout: true, script: """
-                    a=\$(grep -F "peya_version_name=" PedidosYaAS/gradle.properties)
+                    a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
                     IFS='='
                     read -ra b &lt;&lt;&lt; \"\$a\"
                     version=\"\${b[1]}\"
@@ -145,7 +144,7 @@ pipeline {
                     """
                     version = version.trim()
                     def bundle_version = sh returnStdout: true, script: """
-                    a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
+                    a=\$(grep -F "app24_version_code=" PedidosYaAS/gradle.properties)
                     IFS='='
                     read -ra b &lt;&lt;&lt; \"\$a\"
                     version=\"\${b[1]}\"
@@ -155,6 +154,9 @@ pipeline {
                     version = version + '_' + bundle_version
                     print('{"version": "' + version + '"}')
                     httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                    {% if peya_app_id != '' %}
+                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                    {% endif %}
                 }
             }
         }

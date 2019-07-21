@@ -125,7 +125,6 @@ pipeline {
                 archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
             }
         }
-
         stage('Get App Version') {
             steps {
                 script {

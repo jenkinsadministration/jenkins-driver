@@ -127,12 +127,11 @@ pipeline {
                 archiveArtifacts allowEmptyArchive: false, artifacts: 'Apetito24.apk.zip', onlyIfSuccessful: true
             }
         }
-
         stage('Get App Version') {
             steps {
                 script {
                     def version = sh returnStdout: true, script: """
-                    a=\$(grep -F "app24_version_name=" PedidosYaAS/gradle.properties)
+                    a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
                     IFS='='
                     read -ra b &lt;&lt;&lt; \"\$a\"
                     version=\"\${b[1]}\"

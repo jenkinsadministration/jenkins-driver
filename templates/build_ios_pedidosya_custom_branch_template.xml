@@ -129,10 +129,12 @@ pipeline {
         }
         stage('Build') {
             steps {
-                try {
-                    sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
-                } catch (exc) {
-                    slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                script {
+                    try {
+                        sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                    } catch (exc) {
+                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                    }
                 }
             }
         }
@@ -143,7 +145,6 @@ pipeline {
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'PedidosYa.app.zip', onlyIfSuccessful: true
             }
         }
-
         stage('Get App Version') {
             steps {
                 script {
