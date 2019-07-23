@@ -88,6 +88,8 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
+def build_ok = true
+
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
@@ -120,7 +122,8 @@ pipeline {
                     try {
                         sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleapp24Stagingapp24Release"
                     } catch (exc) {
-                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
                     }
                 }
             }
@@ -191,6 +194,22 @@ pipeline {
             }
         }
         {% endif %}
+        stage('Slack Notification') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
     }
 }
         </script>
