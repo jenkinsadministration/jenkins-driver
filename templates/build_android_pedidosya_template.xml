@@ -125,9 +125,13 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; mv pedidosYa-peya-staging-peyaRelease.apk PedidosYa.apk &amp;&amp; zip -r PedidosYa.apk.zip PedidosYa.apk'
-                sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/PedidosYa.apk.zip ./PedidosYa.apk.zip'
-                archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
+                script {
+                    if(build_ok) {
+                        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; mv pedidosYa-peya-staging-peyaRelease.apk PedidosYa.apk &amp;&amp; zip -r PedidosYa.apk.zip PedidosYa.apk'
+                        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/PedidosYa.apk.zip ./PedidosYa.apk.zip'
+                        archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
+                    }
+                }
             }
         }
         stage('Get App Version') {
