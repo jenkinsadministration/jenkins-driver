@@ -81,7 +81,7 @@ import hudson.tasks.Mailer
 BUILD_JOB_NAME = "${JOB_NAME}"
 
 pipeline {
-    agent { node { label '{{label}}' } }
+    agent { node { label 'BUILD_iOS' } }
     stages {
         stage('Clean') {
             steps {
