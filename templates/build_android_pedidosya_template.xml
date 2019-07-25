@@ -133,28 +133,30 @@ pipeline {
         stage('Get App Version') {
             steps {
                 script {
-                    def version = sh returnStdout: true, script: """
-                    a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
-                    IFS='='
-                    read -ra b &lt;&lt;&lt; \"\$a\"
-                    version=\"\${b[1]}\"
-                    echo \$version
-                    """
-                    version = version.trim()
-                    def bundle_version = sh returnStdout: true, script: """
-                    a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
-                    IFS='='
-                    read -ra b &lt;&lt;&lt; \"\$a\"
-                    version=\"\${b[1]}\"
-                    echo \$version
-                    """
-                    bundle_version = bundle_version.trim()
-                    version = version + '_' + bundle_version
-                    print('{"version": "' + version + '"}')
-                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
-                    {% if peya_app_id != '' %}
-                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
-                    {% endif %}
+                    if(build_ok) {
+                        def version = sh returnStdout: true, script: """
+                        a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
+                        IFS='='
+                        read -ra b &lt;&lt;&lt; \"\$a\"
+                        version=\"\${b[1]}\"
+                        echo \$version
+                        """
+                        version = version.trim()
+                        def bundle_version = sh returnStdout: true, script: """
+                        a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
+                        IFS='='
+                        read -ra b &lt;&lt;&lt; \"\$a\"
+                        version=\"\${b[1]}\"
+                        echo \$version
+                        """
+                        bundle_version = bundle_version.trim()
+                        version = version + '_' + bundle_version
+                        print('{"version": "' + version + '"}')
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                        {% if peya_app_id != '' %}
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                        {% endif %}
+                    }
                 }
             }
         }
@@ -162,18 +164,20 @@ pipeline {
         stage('Fire Tests') {
             steps {
                 script {
-                    def jenkins_url = "{{jenkins_url}}"
+                    if(build_ok) {
+                        def jenkins_url = "{{jenkins_url}}"
+                        build job:
+                            "{{job_of_test}}",
+                            parameters: [
+                                string(name: 'Suite', value: "REGRESSION"),
+                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                                string(name: 'App_Name', value: "PedidosYa.apk.zip"),
+                                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
+                            ],
+                            propagate: false,
+                            wait: false
+                    }
                 }
-                build job:
-                    "{{job_of_test}}",
-                    parameters: [
-                        string(name: 'Suite', value: "REGRESSION"),
-                        string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "PedidosYa.apk.zip"),
-                        string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
-                    ],
-                    propagate: false,
-                    wait: false
             }
         }
         {% endif %}
