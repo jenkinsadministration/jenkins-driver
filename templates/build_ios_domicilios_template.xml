@@ -77,6 +77,8 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
+def build_ok = true
+
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
@@ -96,7 +98,7 @@ pipeline {
                 ])
             }
         }
-        stage('Slack Notification') {
+        stage('Slack Notification Starting') {
             steps {
                 script {
                     slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
@@ -111,7 +113,8 @@ pipeline {
                         sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
                         sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                     } catch (exc) {
-                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
                     }
                 }
             }
@@ -119,18 +122,27 @@ pipeline {
         {% if app_extension == '.app' %}
         stage('Build') {
             steps {
-                try {
-                    sh "/usr/bin/xcodebuild -scheme 'Domicilios Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
-                } catch (exc) {
-                    slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                script {
+                    if(build_ok) {
+                        try {
+                            sh "/usr/bin/xcodebuild -scheme 'Domicilios Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                        } catch (exc) {
+                            currentBuild.result = 'FAILED'
+                            build_ok = false
+                        }
+                    }
                 }
             }
         }
         stage('Publish') {
             steps {
-                sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r Domicilios.app.zip Domicilios.app'
-                sh 'mv build/Products/Debug-iphonesimulator/Domicilios.app.zip ./Domicilios.app.zip'
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'Domicilios.app.zip', onlyIfSuccessful: true
+                script {
+                    if(build_ok) {
+                        sh 'cd build/Products/Debug-iphonesimulator &amp;&amp; zip -r Domicilios.app.zip Domicilios.app'
+                        sh 'mv build/Products/Debug-iphonesimulator/Domicilios.app.zip ./Domicilios.app.zip'
+                        archiveArtifacts allowEmptyArchive: true, artifacts: 'Domicilios.app.zip', onlyIfSuccessful: true
+                    }
+                }
             }
         }
         {% endif %}
@@ -138,13 +150,26 @@ pipeline {
         {% if app_extension == '.ipa' %}
         stage('Build') {
             steps {
-                sh "/usr/local/bin/fastlane buildDemo scheme:\"Domicilios Demo\""
+                script {
+                    if(build_ok) {
+                        try {
+                            sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane buildDemo scheme:\"Domicilios Demo\""
+                        } catch (exc) {
+                            currentBuild.result = 'FAILED'
+                            build_ok = false
+                        }
+                    }
+                }
             }
         }
         stage('Publish') {
             steps {
-                sh 'zip -r Domicilios.ipa.zip Domicilios.ipa'
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'Domicilios.ipa.zip', onlyIfSuccessful: true
+                script {
+                    if(build_ok) {
+                        sh 'zip -r Domicilios.ipa.zip Domicilios.ipa'
+                        archiveArtifacts allowEmptyArchive: true, artifacts: 'Domicilios.ipa.zip', onlyIfSuccessful: true
+                    }
+                }
             }
         }
         {% endif %}
@@ -152,26 +177,28 @@ pipeline {
         stage('Get App Version') {
             steps {
                 script {
-                    def version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleShortVersionString" Domicilios-Info.plist | grep -v "&lt;key>")
-                    b=\${a//&lt;string>/}
-                    version=\${b//&lt;\\/string>/}
-                    echo \$version
-                    """
-                    version = version.trim()
-                    def bundle_version = sh returnStdout: true, script: """
-                    a=\$(grep -F -A1 "CFBundleVersion" Domicilios-Info.plist | grep -v "&lt;key>")
-                    b=\${a//&lt;string>/}
-                    version=\${b//&lt;\\/string>/}
-                    echo \$version
-                    """
-                    bundle_version = bundle_version.trim()
-                    version = version + '_' + bundle_version
-                    print('{"version": "' + version + '"}')
-                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
-                    {% if peya_app_id != '' %}
-                    httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "app_extension": "{{app_extension}}", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
-                    {% endif %}
+                    if(build_ok) {
+                        def version = sh returnStdout: true, script: """
+                        a=\$(grep -F -A1 "CFBundleShortVersionString" Domicilios-Info.plist | grep -v "&lt;key>")
+                        b=\${a//&lt;string>/}
+                        version=\${b//&lt;\\/string>/}
+                        echo \$version
+                        """
+                        version = version.trim()
+                        def bundle_version = sh returnStdout: true, script: """
+                        a=\$(grep -F -A1 "CFBundleVersion" Domicilios-Info.plist | grep -v "&lt;key>")
+                        b=\${a//&lt;string>/}
+                        version=\${b//&lt;\\/string>/}
+                        echo \$version
+                        """
+                        bundle_version = bundle_version.trim()
+                        version = version + '_' + bundle_version
+                        print('{"version": "' + version + '"}')
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
+                        {% if peya_app_id != '' %}
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "app_extension": "{{app_extension}}", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
+                        {% endif %}
+                    }
                 }
             }
         }
@@ -179,21 +206,39 @@ pipeline {
         stage('Fire Tests') {
             steps {
                 script {
-                    def jenkins_url = "{{jenkins_url}}"
+                    if(build_ok) {
+                        def jenkins_url = "{{jenkins_url}}"
+                        build job:
+                            "{{job_of_test}}",
+                            parameters: [
+                                string(name: 'Suite', value: "REGRESSION"),
+                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
+                                string(name: 'App_Name', value: "Domicilios{{app_extension}}.zip"),
+                                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
+                            ],
+                            propagate: false,
+                            wait: false
+                    }
                 }
-                build job:
-                    "{{job_of_test}}",
-                    parameters: [
-                        string(name: 'Suite', value: "REGRESSION"),
-                        string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                        string(name: 'App_Name', value: "Domicilios{{app_extension}}.zip"),
-                        string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
-                    ],
-                    propagate: false,
-                    wait: false
             }
         }
         {% endif %}
+        stage('Slack Notification Finishing') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
     }
 }
         </script>
