@@ -117,11 +117,12 @@ class JenkinsService:
             else:
                 print("   The job «%s» already exists" % job_name)
 
-    def create_build_job(self, job_name, setup, label, iphone_udid, jenkins_url='http://192.168.19.34:8080', update_if_exists=True):
+    def create_build_job(self, job_name, setup, label, iphone_udid, jenkins_url, update_if_exists=True):
         repository = setup['repository']
         branch = setup['branch']
         cron = setup['cron']
         log_rotate = int(setup['log_rotate'])
+        slack_channel = setup['slack_channel']
         template_name = setup['template']
         if 'parameters' in setup:
             parameters = setup['parameters']
@@ -166,6 +167,7 @@ class JenkinsService:
         job_config = template.render(
             repository=repository,
             branch=branch,
+            slack_channel=slack_channel,
             cron=cron,
             log_rotate=log_rotate,
             parameters=parameters,
