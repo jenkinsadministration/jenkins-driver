@@ -18,6 +18,14 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
+                 {% if branch == "" %}
+                    <hudson.model.StringParameterDefinition>
+                        <name>Branch</name>
+                        <description></description>
+                        <defaultValue>staging</defaultValue>
+                        <trim>false</trim>
+                    </hudson.model.StringParameterDefinition>
+                 {% endif %}
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
@@ -110,7 +118,7 @@ pipeline {
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "{{branch}}"]],
+                    branches: [[name: "${params.Branch}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]

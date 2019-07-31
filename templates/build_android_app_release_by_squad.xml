@@ -22,7 +22,7 @@
                     <hudson.model.StringParameterDefinition>
                         <name>Branch</name>
                         <description></description>
-                        <defaultValue>dev</defaultValue>
+                        <defaultValue>staging</defaultValue>
                         <trim>false</trim>
                     </hudson.model.StringParameterDefinition>
                  {% endif %}
@@ -140,7 +140,7 @@ pipeline {
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "{{branch}}"]],
+                    branches: [[name: "${params.Branch}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
