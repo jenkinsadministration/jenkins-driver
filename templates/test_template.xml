@@ -104,7 +104,11 @@ pipeline {
         }
         stage('Update Dashboard') {
             steps {
-                httpRequest httpMode: 'GET', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/notifications'
+                script {
+                    try {
+                        httpRequest httpMode: 'GET', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/notifications'
+                    } catch (exc) {}
+                }
             }
         }
         stage('Tests') {

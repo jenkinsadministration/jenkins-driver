@@ -18,12 +18,6 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                <hudson.model.StringParameterDefinition>
-                    <name>Branch</name>
-                    <description></description>
-                    <defaultValue></defaultValue>
-                    <trim>false</trim>
-                </hudson.model.StringParameterDefinition>
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
@@ -116,7 +110,7 @@ pipeline {
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "{{branch}}"]],
+                    branches: [[name: "${params.Branch}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
@@ -139,9 +133,9 @@ pipeline {
             steps {
                 script {
                     if (build_ok) {
-                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "success", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build success!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token 38bcb109a2f8a8b8fc589b193e3625370c56a374']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "success", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build success!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
                     } else {
-                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "failure", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build failure!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token 38bcb109a2f8a8b8fc589b193e3625370c56a374']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "failure", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build failure!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
                     }
                 }
             }
