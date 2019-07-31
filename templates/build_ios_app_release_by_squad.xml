@@ -41,7 +41,7 @@
                          <description></description>
                          <choices class="java.util.Arrays$ArrayList">
                              <a class="string-array">
-                                 {% for value in ['CL', 'OS', 'APPSCORE', 'NCR', 'PYC', 'SHOPS', 'SO', 'PRMA', 'CC', 'RESTAURANTS']%}
+                                 {% for value in ['AA', 'APPSCORE', 'CC', 'CL', 'NCR', 'OS', 'PRMA', 'PYC', 'RESTAURANTS', 'SHOPS', 'SO']%}
                                  <string>{{value}}</string>
                                  {% endfor %}
                              </a>

@@ -18,6 +18,36 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
+                 {% if branch == "" %}
+                    <hudson.model.StringParameterDefinition>
+                        <name>Branch</name>
+                        <description></description>
+                        <defaultValue>dev</defaultValue>
+                        <trim>false</trim>
+                    </hudson.model.StringParameterDefinition>
+                 {% endif %}
+                     <hudson.model.ChoiceParameterDefinition>
+                         <name>Lane</name>
+                         <description></description>
+                         <choices class="java.util.Arrays$ArrayList">
+                             <a class="string-array">
+                                 {% for value in ['Demo', 'Peya Demo']%}
+                                 <string>{{value}}</string>
+                                 {% endfor %}
+                             </a>
+                         </choices>
+                     </hudson.model.ChoiceParameterDefinition>
+                     <hudson.model.ChoiceParameterDefinition>
+                         <name>Squad</name>
+                         <description></description>
+                         <choices class="java.util.Arrays$ArrayList">
+                             <a class="string-array">
+                                 {% for value in ['AA', 'APPSCORE', 'CC', 'CL', 'NCR', 'OS', 'PRMA', 'PYC', 'RESTAURANTS', 'SHOPS', 'SO']%}
+                                 <string>{{value}}</string>
+                                 {% endfor %}
+                             </a>
+                         </choices>
+                     </hudson.model.ChoiceParameterDefinition>
                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
