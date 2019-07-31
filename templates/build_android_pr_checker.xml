@@ -77,15 +77,13 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
-def build_ok = true
-
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
 pipeline {
-    agent { node { label '{{label}}' } }
+    agent { node { label 'BUILD_iOS' } }
     stages {
-        stage('Slack Notification Starting') {
+        stage('Slack Notification') {
             steps {
                 script {
                     slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
@@ -127,68 +125,17 @@ pipeline {
                 }
             }
         }
-        stage('Publish') {
+        stage('Set Status') {
             steps {
                 script {
-                    if(build_ok) {
-                        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; mv pedidosYa-peya-staging-peyaRelease.apk PedidosYa.apk &amp;&amp; zip -r PedidosYa.apk.zip PedidosYa.apk'
-                        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/PedidosYa.apk.zip ./PedidosYa.apk.zip'
-                        archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
+                    if (build_ok) {
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "success", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build success!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
+                    } else {
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "failure", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build failure!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
                     }
                 }
             }
         }
-        stage('Get App Version') {
-            steps {
-                script {
-                    if(build_ok) {
-                        def version = sh returnStdout: true, script: """
-                        a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
-                        IFS='='
-                        read -ra b &lt;&lt;&lt; \"\$a\"
-                        version=\"\${b[1]}\"
-                        echo \$version
-                        """
-                        version = version.trim()
-                        def bundle_version = sh returnStdout: true, script: """
-                        a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
-                        IFS='='
-                        read -ra b &lt;&lt;&lt; \"\$a\"
-                        version=\"\${b[1]}\"
-                        echo \$version
-                        """
-                        bundle_version = bundle_version.trim()
-                        version = version + '_' + bundle_version
-                        print('{"version": "' + version + '"}')
-                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
-                        {% if peya_app_id != '' %}
-                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
-                        {% endif %}
-                    }
-                }
-            }
-        }
-        {% if job_of_test != '' %}
-        stage('Fire Tests') {
-            steps {
-                script {
-                    if(build_ok) {
-                        def jenkins_url = "{{jenkins_url}}"
-                        build job:
-                            "{{job_of_test}}",
-                            parameters: [
-                                string(name: 'Suite', value: "REGRESSION"),
-                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                                string(name: 'App_Name', value: "PedidosYa.apk.zip"),
-                                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
-                            ],
-                            propagate: false,
-                            wait: false
-                    }
-                }
-            }
-        }
-        {% endif %}
         stage('Slack Notification Finishing') {
             steps {
                 script {

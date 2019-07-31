@@ -96,6 +96,23 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Slack Notification Starting') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
+        stage('Clean') {
+            steps {
+                script {
+                    try {
+                        sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
+                        sh "/usr/bin/git reset HEAD --hard"
+                    } catch (exc) {}
+                }
+            }
+        }
         stage('Preparation') {
             steps {
                 script {
@@ -107,13 +124,6 @@ pipeline {
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
-            }
-        }
-        stage('Slack Notification Starting') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
             }
         }
         stage('Build') {

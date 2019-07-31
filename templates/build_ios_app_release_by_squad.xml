@@ -112,12 +112,21 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
+def build_ok = true
+
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Slack Notification Starting') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
         stage('Preparation') {
             steps {
                 script {
@@ -129,13 +138,6 @@ pipeline {
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
-            }
-        }
-        stage('Slack Notification') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
             }
         }
         stage('Unlock Keychain') {
@@ -151,7 +153,8 @@ pipeline {
                         sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
                         sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                     } catch (exc) {
-                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                            currentBuild.result = 'FAILED'
+                            build_ok = false
                     }
                 }
             }
@@ -165,7 +168,8 @@ pipeline {
                     try {
                         sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane demo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
                     } catch (exc) {
-                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                            currentBuild.result = 'FAILED'
+                            build_ok = false
                     }
                 }
             }
@@ -179,8 +183,25 @@ pipeline {
                     try {
                         sh "export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=1200 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane peyaDemo release_notes:\"${params.Release_Note}\" squad:\"${params.Squad}\""
                     } catch (exc) {
-                        slackSend channel: '{{slack_channel}}', message: "Application build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                            currentBuild.result = 'FAILED'
+                            build_ok = false
                     }
+                }
+            }
+        }
+        stage('Slack Notification Finishing') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
             }
         }

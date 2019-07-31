@@ -78,11 +78,17 @@ def build_ok = true
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Slack Notification Starting') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
         stage('Preparation') {
             steps {
                 script {
                     currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
                 checkout([$class: 'GitSCM',
                     branches: [[name: "{{branch}}"]],
@@ -111,26 +117,50 @@ pipeline {
         }
         stage('Results') {
             steps {
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'target/surefire-reports/testng-results.xml'
+                script {
+                    try {
+                        archiveArtifacts allowEmptyArchive: true, artifacts: 'target/surefire-reports/testng-results.xml'
+                    } catch (exc) {}
+                }
             }
         }
         {% if athenea.project_id != '' and athenea.environment_id != '' %}
         stage('Upload Report') {
             steps {
-                sh 'cp target/surefire-reports/testng-results.xml ./report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml'
-                {% if has_custom_subscribers %}
-                // Notify by email to additional subscribers
-                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"emails": ' + "${JsonOutput.toJson(params.Emails_To_Notify.split(','))}" +'}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/notifications', validResponseCodes: '100:599'
-                {% endif %}
-                {% if update_execution_details %}
-                // Set execution details
-                httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": ""}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
-                {% endif %}
-                googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
+                script {
+                    try {
+                        sh 'cp target/surefire-reports/testng-results.xml ./report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml'
+                        {% if has_custom_subscribers %}
+                        // Notify by email to additional subscribers
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"emails": ' + "${JsonOutput.toJson(params.Emails_To_Notify.split(','))}" +'}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/notifications', validResponseCodes: '100:599'
+                        {% endif %}
+                        {% if update_execution_details %}
+                        // Set execution details
+                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"subject": "'+"${params.Reason_Of_Execution}" + '","responsible": ""}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/execution_details', validResponseCodes: '100:599'
+                        {% endif %}
+                        googleStorageUpload bucket: 'gs://atenea-33daf.appspot.com', credentialsId: 'Athenea', pattern: 'report_{{athenea.project_id}}_{{athenea.environment_id}}_testng-results.xml', sharedPublicly: true, showInline: true
+                    } catch (exc) {}
+                }
             }
         }
         {% endif %}
         stage('Slack Notification') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
+        stage('Slack Notification Finishing') {
             steps {
                 script {
                     def status = ""

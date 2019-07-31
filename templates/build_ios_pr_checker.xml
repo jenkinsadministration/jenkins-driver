@@ -15,10 +15,28 @@
             </jenkins.model.BuildDiscarderProperty>
         {% endif %}
         <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
-        {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                {% for p in parameters %}
+                 {% if branch == "" %}
+                    <hudson.model.StringParameterDefinition>
+                        <name>Branch</name>
+                        <description></description>
+                        <defaultValue>dev</defaultValue>
+                        <trim>false</trim>
+                    </hudson.model.StringParameterDefinition>
+                 {% endif %}
+                     <hudson.model.ChoiceParameterDefinition>
+                         <name>Lane</name>
+                         <description></description>
+                         <choices class="java.util.Arrays$ArrayList">
+                             <a class="string-array">
+                                 {% for value in ['DemoRC', 'Night', 'Release', 'Demo Night']%}
+                                 <string>{{value}}</string>
+                                 {% endfor %}
+                             </a>
+                         </choices>
+                     </hudson.model.ChoiceParameterDefinition>
+                 {% for p in parameters %}
                     {% if p['is_parameterizable'] %}
                         {% if p['type'] == 'string' %}
                             <hudson.model.StringParameterDefinition>
@@ -28,7 +46,7 @@
                                 <trim>false</trim>
                             </hudson.model.StringParameterDefinition>
                         {% endif %}
-                        {% if p['type'] == 'boolean' %}
+                        {% if p['type'] == 'boolean'  %}
                             <hudson.model.BooleanParameterDefinition>
                                 <name>{{p['name']}}</name>
                                 <description>{{p['description']}}</description>
@@ -52,7 +70,6 @@
                 {% endfor %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
-        {% endif %}
         {% if cron['poll_scm'] != '' %}
             <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
               <triggers>
@@ -92,34 +109,31 @@ pipeline {
                 }
             }
         }
-        stage('Clean') {
-            steps {
-                script {
-                    try {
-                        sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
-                        sh "/usr/bin/git reset HEAD --hard"
-                    } catch (exc) {}
-                }
-            }
-        }
         stage('Preparation') {
             steps {
                 script {
                     currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
                 }
                 checkout([$class: 'GitSCM',
-                    branches: [[name: "{{branch}}"]],
+                    branches: [[name: "${params.Branch}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
                     gitTool: 'Default',
                     userRemoteConfigs: [[url: '{{repository}}']]
                 ])
             }
         }
-        stage('Build') {
+        stage('Unlock Keychain') {
+            steps {
+                sh "security unlock-keychain -p Automation01 ~/Library/Keychains/login.keychain"
+            }
+        }
+        stage('Install Pods') {
             steps {
                 script {
                     try {
-                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assemblePeyaStagingPeyaRelease"
+                        sh "rm Podfile.lock"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
+                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
@@ -127,68 +141,29 @@ pipeline {
                 }
             }
         }
-        stage('Publish') {
+        stage('Build') {
             steps {
                 script {
-                    if(build_ok) {
-                        sh 'cd ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease &amp;&amp; mv pedidosYa-peya-staging-peyaRelease.apk PedidosYa.apk &amp;&amp; zip -r PedidosYa.apk.zip PedidosYa.apk'
-                        sh 'mv ./PedidosYaAS/pedidosYa/build/outputs/apk/peyaStaging/peyaRelease/PedidosYa.apk.zip ./PedidosYa.apk.zip'
-                        archiveArtifacts allowEmptyArchive: false, artifacts: 'PedidosYa.apk.zip', onlyIfSuccessful: true
+                    try {
+                        sh "/usr/bin/xcodebuild -scheme 'PedidosYa! Demo' -workspace './PedidosYa!.xcworkspace'  -configuration 'Debug' CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO -derivedDataPath './' -destination 'id={{iphone_udid}}'"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
                     }
                 }
             }
         }
-        stage('Get App Version') {
+        stage('Set Status') {
             steps {
                 script {
-                    if(build_ok) {
-                        def version = sh returnStdout: true, script: """
-                        a=\$(grep -F "version_name=" PedidosYaAS/gradle.properties)
-                        IFS='='
-                        read -ra b &lt;&lt;&lt; \"\$a\"
-                        version=\"\${b[1]}\"
-                        echo \$version
-                        """
-                        version = version.trim()
-                        def bundle_version = sh returnStdout: true, script: """
-                        a=\$(grep -F "peya_version_code=" PedidosYaAS/gradle.properties)
-                        IFS='='
-                        read -ra b &lt;&lt;&lt; \"\$a\"
-                        version=\"\${b[1]}\"
-                        echo \$version
-                        """
-                        bundle_version = bundle_version.trim()
-                        version = version + '_' + bundle_version
-                        print('{"version": "' + version + '"}')
-                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"version": "' + version + '"}', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/projects/{{athenea.project_id}}/environments/{{athenea.environment_id}}/version', validResponseCodes: '100:599'
-                        {% if peya_app_id != '' %}
-                        httpRequest consoleLogResponseBody: true, acceptType: 'APPLICATION_JSON_UTF8', contentType: 'APPLICATION_JSON_UTF8', httpMode: 'PUT', ignoreSslErrors: true, requestBody: '{"app_version": "' + version + '", "branch": "{{branch}}", "file_format": "apk", "build_url": "{{jenkins_url}}{{job_path}}/lastSuccessfulBuild/artifact/PedidosYa.apk.zip"}', responseHandle: 'NONE', url: 'https://us-central1-peyaapps.cloudfunctions.net/Api/apps/{{peya_app_id}}', validResponseCodes: '100:599'
-                        {% endif %}
+                    if (build_ok) {
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "success", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build success!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/iphone-app/statuses/${params.Branch}"
+                    } else {
+                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token eda6d65fd4a1c3aa1448aa7fbd729e3ea6973880']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "failure", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build failure!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/iphone-app/statuses/${params.Branch}"
                     }
                 }
             }
         }
-        {% if job_of_test != '' %}
-        stage('Fire Tests') {
-            steps {
-                script {
-                    if(build_ok) {
-                        def jenkins_url = "{{jenkins_url}}"
-                        build job:
-                            "{{job_of_test}}",
-                            parameters: [
-                                string(name: 'Suite', value: "REGRESSION"),
-                                string(name: 'App_Path', value: "{{jenkins_url}}{{job_path}}/${BUILD_NUMBER}/artifact"),
-                                string(name: 'App_Name', value: "PedidosYa.apk.zip"),
-                                string(name: 'Reason_Of_Execution', value: "Nueva versión de la aplicación")
-                            ],
-                            propagate: false,
-                            wait: false
-                    }
-                }
-            }
-        }
-        {% endif %}
         stage('Slack Notification Finishing') {
             steps {
                 script {
