@@ -102,7 +102,6 @@ pipeline {
                 script {
                     try {
                         sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
-                        sh "/usr/bin/git reset HEAD --hard"
                     } catch (exc) {}
                 }
             }
