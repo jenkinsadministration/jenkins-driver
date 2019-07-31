@@ -78,6 +78,13 @@ def build_ok = true
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Set Build Name') {
+            steps {
+                script {
+                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+                }
+            }
+        }
         stage('Slack Notification Starting') {
             steps {
                 script {
@@ -87,9 +94,6 @@ pipeline {
         }
         stage('Preparation') {
             steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
                 checkout([$class: 'GitSCM',
                     branches: [[name: "{{branch}}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],

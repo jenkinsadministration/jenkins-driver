@@ -100,6 +100,13 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        stage('Set Build Name') {
+            steps {
+                script {
+                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+                }
+            }
+        }
         stage('Slack Notification Starting') {
             steps {
                 script {
@@ -109,9 +116,6 @@ pipeline {
         }
         stage('Preparation') {
             steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
                 checkout([$class: 'GitSCM',
                     branches: [[name: "${params.Branch}"]],
                     extensions: [[$class: 'CloneOption', timeout: 120]],
