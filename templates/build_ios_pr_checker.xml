@@ -17,6 +17,12 @@
         <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
+                <hudson.model.StringParameterDefinition>
+                    <name>Branch</name>
+                    <description></description>
+                    <defaultValue></defaultValue>
+                    <trim>false</trim>
+                </hudson.model.StringParameterDefinition>
                  {% if branch == "" %}
                     <hudson.model.StringParameterDefinition>
                         <name>Branch</name>
