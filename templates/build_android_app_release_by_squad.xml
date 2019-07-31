@@ -149,7 +149,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh "cd ./PedidosYaAS &amp;&amp; export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane build squad:FASTLANE_TEST type:demo"
+                sh "cd ./PedidosYaAS &amp;&amp; export ANDROID_HOME=/Users/jenkins/Library/Android/sdk &amp;&amp; export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane build squad:FASTLANE_TEST type:demo"
             }
         }
     }
