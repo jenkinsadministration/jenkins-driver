@@ -77,6 +77,8 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
+def build_ok = true
+
 
 BUILD_JOB_NAME = "${JOB_NAME}"
 
