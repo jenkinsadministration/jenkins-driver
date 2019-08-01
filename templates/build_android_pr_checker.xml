@@ -131,11 +131,15 @@ pipeline {
         stage('Set Status') {
             steps {
                 script {
-                    if (build_ok) {
-                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token 75e3d6e6461f70c1f2658a318f3e1e3ba4238cdd']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "success", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build success!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
-                    } else {
-                        httpRequest acceptType: 'APPLICATION_JSON', consoleLogResponseBody: true, contentType: 'APPLICATION_JSON_UTF8', customHeaders: [[maskValue: false, name: 'Authorization', value: 'token 75e3d6e6461f70c1f2658a318f3e1e3ba4238cdd']], httpMode: 'POST', ignoreSslErrors: true, requestBody: '{ "state": "failure", "target_url": "' + "${env.BUILD_URL}" + '", "description": "Build failure!", "context": "athenea/pull-request-validator" }', responseHandle: 'NONE', url: "https://api.github.com/repos/pedidosya/android-mobile/statuses/${params.Branch}"
-                    }
+                    build job:
+                        "PullRequestChecker/Set_PR_Status",
+                        parameters: [
+                            string(name: 'SHA', value: "${params.Branch}"),
+                            string(name: 'Repository', value: "android-mobile"),
+                            booleanParam(name: 'Status', value: build_ok)
+                        ],
+                        propagate: false,
+                        wait: false
                 }
             }
         }
