@@ -146,7 +146,7 @@ pipeline {
                         parameters: [
                             string(name: 'SHA', value: "${params.Branch}"),
                             string(name: 'Repository', value: "iphone-app"),
-                            string(name: 'Job_Url', value: "${env.BUILD_URL}"),
+                            string(name: 'JobUrl', value: "${env.BUILD_URL}"),
                             booleanParam(name: 'Status', value: build_ok)
                         ],
                         propagate: false,
