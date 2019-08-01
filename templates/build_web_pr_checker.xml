@@ -1,0 +1,124 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.32">
+    <actions/>
+    <description></description>
+    <keepDependencies>false</keepDependencies>
+    <properties>
+        {% if log_rotate > 0 %}
+            <jenkins.model.BuildDiscarderProperty>
+                <strategy class="hudson.tasks.LogRotator">
+                    <daysToKeep>-1</daysToKeep>
+                    <numToKeep>{{log_rotate}}</numToKeep>
+                    <artifactDaysToKeep>-1</artifactDaysToKeep>
+                    <artifactNumToKeep>-1</artifactNumToKeep>
+                </strategy>
+            </jenkins.model.BuildDiscarderProperty>
+        {% endif %}
+        <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+        {% if show_parameters %}
+        <hudson.model.ParametersDefinitionProperty>
+             <parameterDefinitions>
+                {% for p in parameters %}
+                    {% if p['is_parameterizable'] %}
+                        {% if p['type'] == 'string' %}
+                            <hudson.model.StringParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                                <trim>false</trim>
+                            </hudson.model.StringParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'boolean' %}
+                            <hudson.model.BooleanParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <defaultValue>{{p['default_value']}}</defaultValue>
+                            </hudson.model.BooleanParameterDefinition>
+                        {% endif %}
+                        {% if p['type'] == 'choice' %}
+                            <hudson.model.ChoiceParameterDefinition>
+                                <name>{{p['name']}}</name>
+                                <description>{{p['description']}}</description>
+                                <choices class="java.util.Arrays$ArrayList">
+                                    <a class="string-array">
+                                        {% for value in p['values'] %}
+                                            <string>{{value}}</string>
+                                        {% endfor %}
+                                    </a>
+                                </choices>
+                            </hudson.model.ChoiceParameterDefinition>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </parameterDefinitions>
+        </hudson.model.ParametersDefinitionProperty>
+        {% endif %}
+        {% if cron['poll_scm'] != '' %}
+            <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+              <triggers>
+                    <hudson.triggers.SCMTrigger>
+                        <spec>{{cron['poll_scm']}}</spec>
+                    </hudson.triggers.SCMTrigger>
+              </triggers>
+            </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+        {% endif %}
+    </properties>
+    {% if cron['build'] != '' %}
+        <triggers>
+            <hudson.triggers.TimerTrigger>
+                <spec>{{cron['build']}}</spec>
+            </hudson.triggers.TimerTrigger>
+        </triggers>
+    {% endif %}
+    <concurrentBuild>false</concurrentBuild>
+    <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
+        <script>
+import hudson.model.*
+import hudson.model.AbstractProject
+import hudson.tasks.Mailer
+
+def build_ok = true
+
+
+BUILD_JOB_NAME = "${JOB_NAME}"
+
+pipeline {
+    agent { node { label '{{label}}' } }
+    stages {
+        stage('Set Build Name') {
+            steps {
+                script {
+                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
+                }
+            }
+        }
+        stage('Preparation') {
+            steps {
+                checkout([$class: 'GitSCM',
+                    branches: [[name: "${params.Branch}"]],
+                    extensions: [[$class: 'CloneOption', timeout: 120]],
+                    gitTool: 'Default',
+                    userRemoteConfigs: [[url: '{{repository}}']]
+                ])
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    try {
+                        sh "echo Hola"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
+                    }
+                }
+            }
+        }
+    }
+}
+        </script>
+        <sandbox>true</sandbox>
+    </definition>
+    <triggers/>
+    <disabled>false</disabled>
+</flow-definition>
