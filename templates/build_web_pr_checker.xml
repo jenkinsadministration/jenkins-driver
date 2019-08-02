@@ -92,6 +92,13 @@ pipeline {
                 }
             }
         }
+        stage('Slack Notification') {
+            steps {
+                script {
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
+                }
+            }
+        }
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
@@ -102,15 +109,59 @@ pipeline {
                 ])
             }
         }
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
                 script {
                     try {
-                        sh "echo Hola"
+                        sh "[ -s ~/.nvm/nvm.sh ] &amp;&amp; \\. ~/.nvm/nvm.sh &amp;&amp; nvm use 10 &amp;&amp; /var/lib/jenkins/.nvm/versions/node/v10.16.1/bin/yarn install --pure-lockfile"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
                     }
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                script {
+                    try {
+                        sh "[ -s ~/.nvm/nvm.sh ] &amp;&amp; \\. ~/.nvm/nvm.sh &amp;&amp; nvm use 10 &amp;&amp; /var/lib/jenkins/.nvm/versions/node/v10.16.1/bin/yarn test"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        build_ok = false
+                    }
+                }
+            }
+        }
+        stage('Set Status') {
+            steps {
+                script {
+                    build job:
+                        "PullRequestChecker/Set_PR_Status",
+                        parameters: [
+                            string(name: 'SHA', value: "${params.Branch}"),
+                            string(name: 'Repository', value: "web"),
+                            string(name: 'JobUrl', value: "${env.BUILD_URL}"),
+                            booleanParam(name: 'Status', value: build_ok)
+                        ],
+                        propagate: false,
+                        wait: false
+                }
+            }
+        }
+        stage('Slack Notification Finishing') {
+            steps {
+                script {
+                    def status = ""
+                    def color = ""
+                    if(build_ok) {
+                        status = "success"
+                        color = "good"
+                    } else {
+                        status = "failed"
+                        color = "danger"
+                    }
+                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
                 }
             }
         }
