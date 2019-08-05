@@ -26,38 +26,7 @@
                         <trim>false</trim>
                     </hudson.model.StringParameterDefinition>
                  {% endif %}
-                {% for p in parameters %}
-                    {% if p['is_parameterizable'] %}
-                        {% if p['type'] == 'string' %}
-                            <hudson.model.StringParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <defaultValue>{{p['default_value']}}</defaultValue>
-                                <trim>false</trim>
-                            </hudson.model.StringParameterDefinition>
-                        {% endif %}
-                        {% if p['type'] == 'boolean' %}
-                            <hudson.model.BooleanParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <defaultValue>{{p['default_value']}}</defaultValue>
-                            </hudson.model.BooleanParameterDefinition>
-                        {% endif %}
-                        {% if p['type'] == 'choice' %}
-                            <hudson.model.ChoiceParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <choices class="java.util.Arrays$ArrayList">
-                                    <a class="string-array">
-                                        {% for value in p['values'] %}
-                                            <string>{{value}}</string>
-                                        {% endfor %}
-                                    </a>
-                                </choices>
-                            </hudson.model.ChoiceParameterDefinition>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+                 {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}

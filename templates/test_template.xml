@@ -16,38 +16,7 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
             <parameterDefinitions>
-                {% for p in parameters %}
-                    {% if p['is_parameterizable'] %}
-                        {% if p['type'] == 'string' %}
-                            <hudson.model.StringParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <defaultValue>{{p['default_value']}}</defaultValue>
-                                <trim>false</trim>
-                            </hudson.model.StringParameterDefinition>
-                        {% endif %}
-                        {% if p['type'] == 'boolean' %}
-                            <hudson.model.BooleanParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <defaultValue>{{p['default_value']}}</defaultValue>
-                            </hudson.model.BooleanParameterDefinition>
-                        {% endif %}
-                        {% if p['type'] == 'choice' %}
-                            <hudson.model.ChoiceParameterDefinition>
-                                <name>{{p['name']}}</name>
-                                <description>{{p['description']}}</description>
-                                <choices class="java.util.Arrays$ArrayList">
-                                    <a class="string-array">
-                                        {% for value in p['values'] %}
-                                            <string>{{value}}</string>
-                                        {% endfor %}
-                                    </a>
-                                </choices>
-                            </hudson.model.ChoiceParameterDefinition>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+                {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}
@@ -78,20 +47,8 @@ def build_ok = true
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        stage('Set Build Name') {
-            steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
-            }
-        }
-        stage('Slack Notification Starting') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
+        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
@@ -102,15 +59,7 @@ pipeline {
                 ])
             }
         }
-        stage('Update Dashboard') {
-            steps {
-                script {
-                    try {
-                        httpRequest httpMode: 'GET', responseHandle: 'NONE', url: 'https://us-central1-atenea-33daf.cloudfunctions.net/api/notifications'
-                    } catch (exc) {}
-                }
-            }
-        }
+        {% include 'partials/scripts/_update_dashboard.groovy' ignore missing with context %}
         stage('Tests') {
             steps {
                 script {
@@ -152,38 +101,7 @@ pipeline {
             }
         }
         {% endif %}
-        stage('Slack Notification') {
-            steps {
-                script {
-                    def status = ""
-                    def color = ""
-                    if(build_ok) {
-                        status = "success"
-                        color = "good"
-                    } else {
-                        status = "failed"
-                        color = "danger"
-                    }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
-        stage('Slack Notification Finishing') {
-            steps {
-                script {
-                    def status = ""
-                    def color = ""
-                    if(build_ok) {
-                        status = "success"
-                        color = "good"
-                    } else {
-                        status = "failed"
-                        color = "danger"
-                    }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
     }
 }
         </script>
