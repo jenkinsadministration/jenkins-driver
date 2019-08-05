@@ -56,20 +56,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        stage('Set Build Name') {
-            steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
-            }
-        }
-        stage('Slack Notification Starting') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
+        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
@@ -80,20 +68,7 @@ pipeline {
                 ])
             }
         }
-        stage('Install Pods') {
-            steps {
-                script {
-                    try {
-                        sh "rm Podfile.lock"
-                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod repo update"
-                        sh "export LANG=en_US.UTF-8 &amp;&amp; /usr/local/bin/pod install"
-                    } catch (exc) {
-                        currentBuild.result = 'FAILED'
-                        build_ok = false
-                    }
-                }
-            }
-        }
+        {% include 'partials/scripts/ios/_install_pods.groovy' ignore missing with context %}
         {% if app_extension == '.app' %}
         stage('Build') {
             steps {
@@ -195,22 +170,7 @@ pipeline {
             }
         }
         {% endif %}
-        stage('Slack Notification Finishing') {
-            steps {
-                script {
-                    def status = ""
-                    def color = ""
-                    if(build_ok) {
-                        status = "success"
-                        color = "good"
-                    } else {
-                        status = "failed"
-                        color = "danger"
-                    }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
     }
 }
         </script>

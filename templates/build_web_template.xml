@@ -54,6 +54,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
+        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
+        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
         stage('Preparation') {
             steps {
                 script {
@@ -84,6 +86,7 @@ pipeline {
             }
         }
         {% endif %}
+        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
     }
 }
         </script>
