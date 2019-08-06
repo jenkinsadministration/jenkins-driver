@@ -15,10 +15,10 @@
             </jenkins.model.BuildDiscarderProperty>
         {% endif %}
         <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
-        {% if show_parameters %}
+        {% if true %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                 {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
+                 {% include './partials/jenkins/_parameters.txt' with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}
@@ -46,7 +46,7 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
-{% include 'partials/scripts/_retry_function.groovy' ignore missing with context %}
+{% include './partials/scripts/_retry_function.groovy' with context %}
 
 
 BUILD_JOB_NAME = "${JOB_NAME}"
@@ -54,8 +54,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
-        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
+        {% include './partials/scripts/_set_build_name.groovy' with context %}
+        {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
         stage('Preparation') {
             steps {
                 script {
@@ -86,7 +86,7 @@ pipeline {
             }
         }
         {% endif %}
-        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
+        {% include './partials/scripts/_slack_notification_finishing.groovy' with context %}
     }
 }
         </script>

@@ -18,7 +18,7 @@
         {% if show_parameters %}
         <hudson.model.ParametersDefinitionProperty>
              <parameterDefinitions>
-                 {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
+                 {% include './partials/jenkins/_parameters.txt' with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}
@@ -46,7 +46,7 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
-{% include 'partials/scripts/_retry_function.groovy' ignore missing with context %}
+{% include './partials/scripts/_retry_function.groovy' with context %}
 
 def build_ok = true
 
@@ -56,8 +56,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
-        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
+        {% include './partials/scripts/_set_build_name.groovy' with context %}
+        {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
@@ -68,7 +68,7 @@ pipeline {
                 ])
             }
         }
-        {% include 'partials/scripts/ios/_install_pods.groovy' ignore missing with context %}
+        {% include './partials/scripts/ios/_install_pods.groovy' with context %}
         {% if app_extension == '.app' %}
         stage('Build') {
             steps {
@@ -173,7 +173,7 @@ pipeline {
             }
         }
         {% endif %}
-        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
+        {% include './partials/scripts/_slack_notification_finishing.groovy' with context %}
     }
 }
         </script>

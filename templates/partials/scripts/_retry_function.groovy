@@ -1,13 +1,11 @@
-def retry(int times = 3, Closure errorHandler = {e-> log.warn(e.message,e)}, Closure body) {
-  int retries = 0
-  def exceptions = []
-  while(retries++ < times) {
-    try {
-      return body.call()
-    } catch(e) {
-      exceptions << e
-      errorHandler.call(e)
+def retry(int times = 5, Closure errorHandler = {e-> log.warn(e.message,e)}, Closure body) {
+    def retries = 0
+    def exceptions = []
+    while(retries++ &lt; times) {
+        retries += 1
+        try {
+          return body.call()
+        } catch(e) {}
     }
-  }
-  throw new MultipleFailureException("Failed after $times retries", exceptions)
+    throw new Exception("Failed after $times retries")
 }

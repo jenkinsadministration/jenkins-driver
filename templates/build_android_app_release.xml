@@ -26,7 +26,7 @@
                         <trim>false</trim>
                     </hudson.model.StringParameterDefinition>
                  {% endif %}
-                 {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
+                 {% include './partials/jenkins/_parameters.txt' with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}

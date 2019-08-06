@@ -36,7 +36,7 @@
                              </a>
                          </choices>
                      </hudson.model.ChoiceParameterDefinition>
-                     {% include 'partials/jenkins/_parameters.txt' ignore missing with context %}
+                     {% include './partials/jenkins/_parameters.txt' with context %}
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% if cron['poll_scm'] != '' %}
@@ -63,7 +63,7 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
-{% include 'partials/scripts/_retry_function.groovy' ignore missing with context %}
+{% include './partials/scripts/_retry_function.groovy' with context %}
 
 
 BUILD_JOB_NAME = "${JOB_NAME}"
@@ -71,8 +71,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        {% include 'partials/scripts/_set_build_name.groovy.groovy' ignore missing with context %}
-        {% include 'partials/scripts/_slack_notification_starting.groovy' ignore missing with context %}
+        {% include './partials/scripts/_set_build_name.groovy' with context %}
+        {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
         stage('Preparation') {
             steps {
                 checkout([$class: 'GitSCM',
@@ -83,8 +83,8 @@ pipeline {
                 ])
             }
         }
-        {% include 'partials/scripts/ios/_unlock_keychain.groovy' ignore missing with context %}
-        {% include 'partials/scripts/ios/_install_pods.groovy' ignore missing with context %}
+        {% include './partials/scripts/ios/_unlock_keychain.groovy' with context %}
+        {% include './partials/scripts/ios/_install_pods.groovy' with context %}
         stage ('Build Demo Release Candidate') {
             when {
                 expression { params.Lane == 'DemoRC' }
@@ -145,7 +145,7 @@ pipeline {
                 }
             }
         }
-        {% include 'partials/scripts/_slack_notification_finishing.groovy' ignore missing with context %}
+        {% include './partials/scripts/_slack_notification_finishing.groovy' with context %}
     }
 }
         </script>
