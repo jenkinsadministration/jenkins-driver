@@ -67,20 +67,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label 'BUILD_iOS' } }
     stages {
-        stage('Set Build Name') {
-            steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
-            }
-        }
-        stage('Slack Notification Starting') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include './partials/scripts/_set_build_name.groovy' with context %}
+        {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
         stage('Clean') {
             steps {
                 script {
@@ -106,6 +94,7 @@ pipeline {
                 sh "cd ./PedidosYaAS &amp;&amp; export ANDROID_HOME=/Users/jenkins/Library/Android/sdk &amp;&amp; export LANG=en_US.UTF-8 &amp;&amp; export FASTLANE_XCODE_LIST_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT=120 &amp;&amp; export FASTLANE_XCODEBUILD_SETTINGS_RETRIES=13 &amp;&amp; /usr/local/bin/fastlane build squad:FASTLANE_TEST type:demo"
             }
         }
+        {% include './partials/scripts/_slack_notification_finishing.groovy' with context %}
     }
 }
         </script>

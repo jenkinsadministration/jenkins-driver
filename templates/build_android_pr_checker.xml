@@ -41,20 +41,8 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 pipeline {
     agent { node { label '{{label}}' } }
     stages {
-        stage('Set Build Name') {
-            steps {
-                script {
-                    currentBuild.displayName = "Build_" + "${BUILD_TIMESTAMP}"
-                }
-            }
-        }
-        stage('Slack Notification') {
-            steps {
-                script {
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} started (&lt;${env.BUILD_URL}|Open>)", color: '#439FE0', botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include './partials/scripts/_set_build_name.groovy' with context %}
+        {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
         stage('Clean') {
             steps {
                 script {
@@ -134,22 +122,7 @@ pipeline {
                 }
             }
         }
-        stage('Slack Notification Finishing') {
-            steps {
-                script {
-                    def status = ""
-                    def color = ""
-                    if(build_ok) {
-                        status = "success"
-                        color = "good"
-                    } else {
-                        status = "failed"
-                        color = "danger"
-                    }
-                    slackSend channel: '{{slack_channel}}', message: "Build ${env.JOB_NAME.replace('/', ' > ')} - #${env.BUILD_DISPLAY_NAME} was ${status} after ${currentBuild.durationString.replace(' and counting', '')} (&lt;${env.BUILD_URL}|Open>)", color: "${color}", botUser: true, teamDomain: 'deliveryhero', tokenCredentialId: 'SlackToken'
-                }
-            }
-        }
+        {% include './partials/scripts/_slack_notification_finishing.groovy' with context %}
     }
 }
         </script>
