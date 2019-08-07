@@ -22,23 +22,8 @@
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}
-        {% if cron['poll_scm'] != '' %}
-            <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
-              <triggers>
-                    <hudson.triggers.SCMTrigger>
-                        <spec>{{cron['poll_scm']}}</spec>
-                    </hudson.triggers.SCMTrigger>
-              </triggers>
-            </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
-        {% endif %}
+        {% include './partials/jenkins/_cron.txt' with context %}
     </properties>
-    {% if cron['build'] != '' %}
-        <triggers>
-            <hudson.triggers.TimerTrigger>
-                <spec>{{cron['build']}}</spec>
-            </hudson.triggers.TimerTrigger>
-        </triggers>
-    {% endif %}
     <concurrentBuild>false</concurrentBuild>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
         <script>

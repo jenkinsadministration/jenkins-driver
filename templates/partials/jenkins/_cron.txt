@@ -1,0 +1,16 @@
+{% if cron['poll_scm'] != '' or cron['build'] != '' %}
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+            {% if cron['poll_scm'] != '' %}
+                <hudson.triggers.SCMTrigger>
+                    <spec>{{cron['poll_scm']}}</spec>
+                </hudson.triggers.SCMTrigger>
+            {% endif %}
+            {% if cron['build'] != '' %}
+                <hudson.triggers.TimerTrigger>
+                    <spec>{{cron['build']}}</spec>
+                </hudson.triggers.TimerTrigger>
+            {% endif %}
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+{% endif %}

@@ -22,23 +22,8 @@
             </parameterDefinitions>
         </hudson.model.ParametersDefinitionProperty>
         {% endif %}
-        {% if cron['poll_scm'] != '' %}
-            <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
-              <triggers>
-                    <hudson.triggers.SCMTrigger>
-                        <spec>{{cron['poll_scm']}}</spec>
-                    </hudson.triggers.SCMTrigger>
-              </triggers>
-            </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
-        {% endif %}
+        {% include './partials/jenkins/_cron.txt' with context %}
     </properties>
-    {% if cron['build'] != '' %}
-        <triggers>
-            <hudson.triggers.TimerTrigger>
-                <spec>{{cron['build']}}</spec>
-            </hudson.triggers.TimerTrigger>
-        </triggers>
-    {% endif %}
     <concurrentBuild>false</concurrentBuild>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
         <script>
@@ -47,6 +32,8 @@ import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
 def build_ok = true
+def test_ok = true
+def lint_ok = true
 
 
 BUILD_JOB_NAME = "${JOB_NAME}"
@@ -87,15 +74,47 @@ pipeline {
                 ])
             }
         }
+        stage('Clean') {
+            steps {
+                script {
+                    sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean"
+                }
+            }
+        }
+        stage('Unit Tests') {
+            steps {
+                script {
+                    try {
+                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle testPeyaStagingPeyaReleaseUnitTest"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        test_ok = false
+                    }
+                }
+            }
+        }
+        stage('Lint') {
+            steps {
+                script {
+                    try {
+                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle lintPeyaStagingPeyaRelease"
+                    } catch (exc) {
+                        currentBuild.result = 'FAILED'
+                        lint_ok = false
+                    }
+                }
+            }
+        }
         stage('Build') {
             steps {
                 script {
                     try {
-                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assemblePeyaStagingPeyaRelease"
+                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle assemblePeyaStagingPeyaRelease"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
                     }
+                    sh "cd .."
                 }
             }
         }
