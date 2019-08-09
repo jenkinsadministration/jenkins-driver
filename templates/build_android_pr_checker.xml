@@ -47,7 +47,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "cd ./PedidosYaAS &amp;&amp; rm -rf build  &amp;&amp; cd .."
+                        sh "cd ./PedidosYaAS &amp;&amp; rm -rf build"
                     } catch (exc) {}
                 }
             }
