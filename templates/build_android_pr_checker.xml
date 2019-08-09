@@ -43,7 +43,7 @@ pipeline {
     stages {
         {% include './partials/scripts/_set_build_name.groovy' with context %}
         {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
-        stage('Clean') {
+        stage('Clean Build Directory') {
             steps {
                 script {
                     try {
