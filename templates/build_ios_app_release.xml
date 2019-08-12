@@ -48,6 +48,8 @@ import hudson.model.*
 import hudson.model.AbstractProject
 import hudson.tasks.Mailer
 
+def build_ok = true
+
 {% include './partials/scripts/_retry_function.groovy' with context %}
 
 
