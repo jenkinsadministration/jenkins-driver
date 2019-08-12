@@ -24,7 +24,6 @@
         {% endif %}
         {% include './partials/jenkins/_cron.txt' with context %}
     </properties>
-    {% endif %}
     <concurrentBuild>false</concurrentBuild>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.65">
         <script>
