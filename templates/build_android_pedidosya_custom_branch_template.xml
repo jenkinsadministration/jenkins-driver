@@ -49,6 +49,7 @@ BUILD_JOB_NAME = "${JOB_NAME}"
 
 pipeline {
     agent { node { label '{{label}}' } }
+    {% include './partials/scripts/android/_environment_vars.groovy' with context %}
     stages {
         {% include './partials/scripts/_set_build_name.groovy' with context %}
         {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
