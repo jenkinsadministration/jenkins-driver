@@ -57,7 +57,9 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "[ -s ~/.nvm/nvm.sh ] &amp;&amp;  ~/.nvm/nvm.sh &amp;&amp; nvm use 10 &amp;&amp; /Users/jenkins/.nvm/versions/node/v10.16.2/bin/yarn install --pure-lockfile"
+                        nodejs('10.16.2') {
+                            sh "yarn install --pure-lockfile"
+                        }
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
@@ -69,7 +71,9 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "[ -s ~/.nvm/nvm.sh ] &amp;&amp; ~/.nvm/nvm.sh &amp;&amp; nvm use 10 &amp;&amp; /Users/jenkins/.nvm/versions/node/v10.16.2/bin/yarn test"
+                        nodejs('10.16.2') {
+                            sh "yarn test"
+                        }
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
