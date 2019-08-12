@@ -76,7 +76,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh "cd ./PedidosYaAS &amp;&amp; /usr/bin/gradle clean assembleDomiStagingDomiRelease"
+                        sh "cd ./PedidosYaAS &amp;&amp; /usr/local/bin/gradle clean assembleDomiStagingDomiRelease"
                     } catch (exc) {
                         currentBuild.result = 'FAILED'
                         build_ok = false
