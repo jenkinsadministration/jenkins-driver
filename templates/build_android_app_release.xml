@@ -43,7 +43,7 @@ import hudson.tasks.Mailer
 BUILD_JOB_NAME = "${JOB_NAME}"
 
 pipeline {
-    agent { node { label 'BUILD_iOS' } }
+    agent { node { label 'APP_RELEASE_Android' } }
     stages {
         {% include './partials/scripts/_set_build_name.groovy' with context %}
         {% include './partials/scripts/_slack_notification_starting.groovy' with context %}
